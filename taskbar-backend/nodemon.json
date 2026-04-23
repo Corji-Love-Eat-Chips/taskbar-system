@@ -1,0 +1,7 @@
+{
+  "watch": ["app.js", "config", "controllers", "middlewares", "models", "routes", "services", "utils"],
+  "ext": "js,json",
+  "ignore": ["node_modules", "coverage", "**/*.test.js", "tests"],
+  "exec": "node app.js",
+  "delay": 300
+}

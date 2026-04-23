@@ -1,0 +1,47 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family:
+    'Helvetica Neue',
+    Helvetica,
+    'PingFang SC',
+    'Microsoft YaHei',
+    Arial,
+    sans-serif;
+  background: $bg-page;
+  color: $text-primary;
+}
+
+// ── 滚动条 ──────────────────────────────────────────────────────────────────
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: #c1c1c1;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+// ── El-Card 默认无阴影 ──────────────────────────────────────────────────────
+.el-card { border-radius: 8px !important; }
+
+// ── 页面卡片容器 ────────────────────────────────────────────────────────────
+.page-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+}
