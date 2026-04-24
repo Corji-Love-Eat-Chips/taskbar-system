@@ -2,7 +2,6 @@
   <el-dialog
     v-model="modelVisible"
     :title="isEdit ? '编辑任务' : '新增任务'"
-    width="680px"
     destroy-on-close
     :close-on-click-modal="false"
     class="task-form-dialog"
@@ -18,7 +17,7 @@
       ref="formRef"
       :model="form"
       :rules="rules"
-      label-width="88px"
+      label-width="auto"
       label-position="right"
       class="task-form"
     >
@@ -440,17 +439,53 @@ watch(modelVisible, (open) => {
 </script>
 
 <style lang="scss" scoped>
+// ── 弹窗：随视口略放大，避免大号字体下标签区过窄 ───────────────────────────────
+.task-form-dialog {
+  width: min(92vw, 760px) !important;
+  max-width: 100%;
+}
+
 // ── 表单 ──────────────────────────────────────────────────────────────────────
-.task-form { padding: 4px 0 0; }
+.task-form {
+  padding: 4px 0 0;
+
+  /* label-width=auto 时仍保证标签单行、与控件垂直对齐（含必填星号） */
+  :deep(.el-form-item__label) {
+    white-space: nowrap;
+    line-height: var(--el-component-size);
+    height: var(--el-component-size);
+    align-items: center;
+  }
+
+  :deep(.el-form-item__content) {
+    align-items: center;
+  }
+
+  /* 多行控件（文本域、多选 select）与标签顶部对齐更自然 */
+  :deep(.el-form-item:has(textarea) .el-form-item__label),
+  :deep(.el-form-item:has(.select-collaborators-multiline) .el-form-item__label) {
+    align-items: flex-start;
+    padding-top: calc((var(--el-component-size) - 1em) / 2);
+    height: auto;
+    line-height: 1.4;
+  }
+
+  :deep(.el-form-item:has(textarea) .el-form-item__content),
+  :deep(.el-form-item:has(.select-collaborators-multiline) .el-form-item__content) {
+    align-items: stretch;
+  }
+}
 
 .full-width { width: 100%; }
 
-/* 协助人员：不折叠为 +N，标签可换行；勿对 selection 使用 flex-start，否则占位符会贴顶 */
+/* 协助人员：不折叠为 +N，标签可换行；selection 至少一行高度，大字号下占位符不贴顶 */
 .select-collaborators-multiline {
   :deep(.el-select__selection) {
     flex-wrap: wrap;
     align-content: flex-start;
     gap: 4px 6px;
+    min-height: var(--el-component-size);
+    box-sizing: border-box;
   }
 
   :deep(.el-select__selected-item) {
@@ -467,13 +502,16 @@ watch(modelVisible, (open) => {
 .form-loading { padding: 8px 0 4px; }
 
 // ── 选项布局 ──────────────────────────────────────────────────────────────────
-.opt-name { font-size: 13px; color: $text-primary; }
+.opt-name {
+  font-size: var(--el-font-size-base);
+  color: $text-primary;
+}
 
 .opt-dept {
   float: right;
-  font-size: 12px;
+  font-size: var(--el-font-size-small);
   color: $text-secondary;
-  line-height: 34px;
+  line-height: var(--el-component-size);
 }
 
 // ── 分类圆点 ──────────────────────────────────────────────────────────────────
@@ -493,7 +531,7 @@ watch(modelVisible, (open) => {
     align-items: center;
     gap: 4px;
     padding: 8px 20px;
-    font-size: 13px;
+    font-size: var(--el-font-size-base);
   }
 
   // 高：选中时红色
@@ -522,7 +560,7 @@ watch(modelVisible, (open) => {
 }
 
 .priority-icon {
-  font-size: 12px;
+  font-size: var(--el-font-size-small);
   vertical-align: -1px;
 }
 
