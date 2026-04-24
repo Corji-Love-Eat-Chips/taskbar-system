@@ -62,6 +62,25 @@
           <el-option label="已取消" value="cancelled" />
         </el-select>
 
+        <!-- 负责人 -->
+        <el-select
+          v-model="filters.owner_id"
+          placeholder="全部负责人"
+          clearable
+          filterable
+          class="filter-item filter-owner"
+        >
+          <el-option
+            v-for="s in staffOptions"
+            :key="s.staff_id"
+            :label="s.name"
+            :value="s.staff_id"
+          >
+            <span>{{ s.name }}</span>
+            <span class="owner-opt-dept">{{ s.department }}</span>
+          </el-option>
+        </el-select>
+
         <!-- 搜索 -->
         <el-input
           v-model="filters.keyword"
@@ -251,6 +270,7 @@ import { ElMessageBox, ElMessage } from 'element-plus'
 import { useDebounceFn } from '@vueuse/core'
 import dayjs from 'dayjs'
 import { getTaskList, deleteTask } from '@/api/task'
+import { getStaffAll } from '@/api/staff'
 import { getPeriodList } from '@/api/period'
 import { useUserStore } from '@/store/user'
 import PeriodSelect    from '@/components/common/PeriodSelect.vue'
@@ -301,8 +321,20 @@ const filters = reactive({
   period_id: null,
   category:  '',
   status:    '',
+  owner_id:  null,
   keyword:   '',
 })
+
+const staffOptions = ref([])
+
+async function loadStaffOptions() {
+  try {
+    const res = await getStaffAll()
+    staffOptions.value = res.data ?? []
+  } catch {
+    staffOptions.value = []
+  }
+}
 
 /**
  * 学期下拉：value 与 periods.semester 一致；
@@ -337,7 +369,10 @@ async function loadSemesterOptions() {
   }
 }
 
-onMounted(loadSemesterOptions)
+onMounted(() => {
+  loadSemesterOptions()
+  loadStaffOptions()
+})
 
 // ── 加载数据 ──────────────────────────────────────────────────────────────────
 async function loadTasks() {
@@ -350,6 +385,7 @@ async function loadTasks() {
     if (filters.period_id) params.period_id = filters.period_id
     if (filters.category)  params.category  = filters.category
     if (filters.status)    params.status    = filters.status
+    if (filters.owner_id)   params.owner_id  = filters.owner_id
     if (filters.keyword)   params.keyword   = filters.keyword.trim()
 
     const res = await getTaskList(params)
@@ -392,7 +428,7 @@ function categoryTagStyle(cat) {
 // ── 监听筛选变化 ──────────────────────────────────────────────────────────────
 // 下拉筛选：立即刷新
 watch(
-  () => [filters.period_id, filters.category, filters.status],
+  () => [filters.period_id, filters.category, filters.status, filters.owner_id],
   () => {
     pagination.page = 1
     loadTasks()
@@ -421,6 +457,7 @@ function handleSizeChange(size) {
 
 function handleRefresh() {
   loadSemesterOptions()
+  loadStaffOptions()
   loadTasks()
 }
 
@@ -529,8 +566,18 @@ loadTasks()
   width: 200px;
 }
 
+.filter-owner {
+  width: 150px;
+}
+
 .filter-search {
   width: 200px;
+}
+
+.owner-opt-dept {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 .toolbar-actions {

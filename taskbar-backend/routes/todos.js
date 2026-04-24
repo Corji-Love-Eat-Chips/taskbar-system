@@ -42,6 +42,19 @@ router.get(
 )
 
 /**
+ * GET /api/todos/calendar
+ * 日程日历数据（有截止时间的待办）
+ */
+router.get(
+  '/calendar',
+  [
+    query('start_date').notEmpty().withMessage('start_date 不能为空'),
+    query('end_date').notEmpty().withMessage('end_date 不能为空'),
+  ],
+  asyncHandler(ctrl.calendar),
+)
+
+/**
  * GET /api/todos/shared
  * 获取"分享给我的待办"
  */

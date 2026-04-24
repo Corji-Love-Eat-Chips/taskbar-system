@@ -311,6 +311,51 @@ async function toggleTodo(id, targetStatus, operator) {
     : uncompleteTodo(id, operator)
 }
 
+// ─── 九、日历视图（有截止时间的待办）────────────────────────────────────────────
+
+/**
+ * 日期范围内、用于日程日历的待办（与会议日历合并展示）
+ *
+ * 权限：admin 看全部；其他角色仅看本人作为执行人的待办
+ *
+ * @param {{ start_date?: string, end_date?: string, viewer?: { role: string, staffId: number|null } }} params
+ */
+async function getCalendarTodos({ start_date, end_date, viewer } = {}) {
+  const conditions = ['td.deadline IS NOT NULL']
+  const params = []
+
+  if (viewer?.role !== 'admin') {
+    if (!viewer?.staffId) return []
+    conditions.push('td.executor_id = ?')
+    params.push(viewer.staffId)
+  }
+
+  if (start_date) { conditions.push('DATE(td.deadline) >= ?'); params.push(start_date) }
+  if (end_date)   { conditions.push('DATE(td.deadline) <= ?'); params.push(end_date) }
+
+  const where = `WHERE ${conditions.join(' AND ')}`
+
+  const [rows] = await pool.query(
+    `SELECT td.todo_id, td.todo_name, td.deadline, td.status, td.priority,
+            td.executor_id, s.name AS executor_name
+       FROM todos td
+       LEFT JOIN staff s ON s.staff_id = td.executor_id
+      ${where}
+      ORDER BY td.deadline ASC`,
+    params,
+  )
+
+  return rows.map(r => ({
+    todo_id:       r.todo_id,
+    todo_name:     r.todo_name,
+    deadline:      r.deadline ? fmtDt(r.deadline) : null,
+    status:        Number(r.status),
+    priority:      r.priority,
+    executor_id:   r.executor_id,
+    executor_name: r.executor_name ?? null,
+  }))
+}
+
 // ─── 导出 ─────────────────────────────────────────────────────────────────────
 module.exports = {
   getTodoList,
@@ -321,4 +366,5 @@ module.exports = {
   completeTodo,
   uncompleteTodo,
   toggleTodo,
+  getCalendarTodos,
 }

@@ -19,6 +19,14 @@ export function getMyTodoList(params) {
 }
 
 /**
+ * 日程日历：有截止时间的待办
+ * @param {{ start_date: string, end_date: string }} params
+ */
+export function getTodoCalendar(params) {
+  return request.get('/todos/calendar', { params })
+}
+
+/**
  * 获取分享给我的待办列表
  * @param {{ status?: 0 | 1 }} params
  * @returns {Promise<{ code, data: { list } }>}

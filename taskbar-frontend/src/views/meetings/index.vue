@@ -32,6 +32,7 @@
       </div>
 
       <div class="toolbar-right">
+        <span class="toolbar-hint">会议与个人待办（有截止时间）</span>
         <el-button size="small" @click="goToday">
           <el-icon><Calendar /></el-icon> 今天
         </el-button>
@@ -57,6 +58,10 @@
       >
         <span class="legend-dot" :style="{ background: t.color }" />
         <span>{{ t.label }}</span>
+      </div>
+      <div class="legend-item legend-item--todo">
+        <span class="legend-dot" :style="{ background: LEGEND_TODO.color }" />
+        <span>{{ LEGEND_TODO.label }}</span>
       </div>
     </div>
 
@@ -88,7 +93,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, nextTick } from 'vue'
+import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import { Calendar, Plus } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
@@ -100,12 +106,24 @@ import timeGridPlugin  from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import zhCnLocale from '@fullcalendar/core/locales/zh-cn'
 
-import { getMeetingCalendar, deleteMeeting } from '@/api/meeting'
+import { getMeetingCalendar } from '@/api/meeting'
+import { getTodoCalendar, getTodoDetail } from '@/api/todo'
 import { useUserStore } from '@/store/user'
 import MeetingDetailDrawer from '@/components/meeting/MeetingDetailDrawer.vue'
 import MeetingFormDialog   from '@/components/meeting/MeetingFormDialog.vue'
 
 const userStore = useUserStore()
+const router      = useRouter()
+
+/** 待办在日历上的图例说明（颜色按优先级，与会议类型筛选无关） */
+const LEGEND_TODO = { label: '待办截止', color: '#13c2c2' }
+
+const TODO_PRIORITY_COLOR = {
+  urgent:    '#f56c6c',
+  important: '#e6a23c',
+  normal:    '#409eff',
+  low:       '#909399',
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 一、常量
@@ -211,28 +229,60 @@ async function fetchCalendarEvents(info, successCallback, failureCallback) {
       start_date: dayjs(info.start).format('YYYY-MM-DD'),
       end_date:   dayjs(info.end).format('YYYY-MM-DD'),
     }
-    const res    = await getMeetingCalendar(params)
-    const list   = res.data?.list ?? []
+    const [meetRes, todoRes] = await Promise.all([
+      getMeetingCalendar(params),
+      getTodoCalendar(params).catch(() => ({ data: { list: [] } })),
+    ])
+    const list = meetRes.data?.list ?? []
 
     let events = list.map(m => ({
-      id:              String(m.meeting_id),
-      title:           m.meeting_name,
-      start:           m.start_time,
-      end:             m.end_time,
-      color:           TYPE_COLOR_MAP[m.meeting_type] ?? '#909399',
-      textColor:       '#fff',
-      extendedProps:   {
-        meeting_id:   m.meeting_id,
-        meeting_type: m.meeting_type,
-        location:     m.location,
-        host_name:    m.host_name,
-        status:       m.status,
+      id:            `m-${m.meeting_id}`,
+      title:         m.meeting_name,
+      start:         m.start_time,
+      end:           m.end_time,
+      color:         TYPE_COLOR_MAP[m.meeting_type] ?? '#909399',
+      textColor:     '#fff',
+      extendedProps: {
+        calendar_kind: 'meeting',
+        meeting_id:    m.meeting_id,
+        meeting_type:  m.meeting_type,
+        location:      m.location,
+        host_name:     m.host_name,
+        status:        m.status,
       },
     }))
 
-    // 应用类型筛选
+    const todoList = todoRes.data?.list ?? []
+    for (const td of todoList) {
+      if (!td.deadline) continue
+      const start = dayjs(td.deadline)
+      const end   = start.add(30, 'minute')
+      const done  = Number(td.status) === 1
+      const bg    = done ? '#c0c4cc' : (TODO_PRIORITY_COLOR[td.priority] ?? LEGEND_TODO.color)
+      events.push({
+        id:              `todo-${td.todo_id}`,
+        title:           done ? `✓ ${td.todo_name}` : td.todo_name,
+        start:           start.format('YYYY-MM-DD HH:mm:ss'),
+        end:             end.format('YYYY-MM-DD HH:mm:ss'),
+        backgroundColor: bg,
+        borderColor:     bg,
+        textColor:       '#fff',
+        extendedProps:   {
+          calendar_kind: 'todo',
+          todo_id:       td.todo_id,
+          executor_name: td.executor_name,
+          priority:      td.priority,
+          status:        td.status,
+        },
+      })
+    }
+
+    // 会议类型筛选：不影响待办
     if (typeFilter.value) {
-      events = events.filter(e => e.extendedProps.meeting_type === typeFilter.value)
+      events = events.filter(
+        e => e.extendedProps.calendar_kind === 'todo'
+          || e.extendedProps.meeting_type === typeFilter.value,
+      )
     }
 
     successCallback(events)
@@ -242,8 +292,34 @@ async function fetchCalendarEvents(info, successCallback, failureCallback) {
 }
 
 // ─── 点击事件 → 打开详情 ──────────────────────────────────────────────────────
-function handleEventClick({ event }) {
-  const meetingId = event.extendedProps?.meeting_id
+async function handleEventClick({ event }) {
+  const props = event.extendedProps ?? {}
+  if (props.calendar_kind === 'todo' && props.todo_id) {
+    try {
+      const res  = await getTodoDetail(props.todo_id)
+      const td   = res.data
+      const lines = [
+        td.deadline ? `截止时间：${td.deadline}` : null,
+        td.executor_name ? `执行人：${td.executor_name}` : null,
+        Number(td.status) === 1 ? '状态：已完成' : '状态：未完成',
+      ].filter(Boolean)
+      await ElMessageBox.confirm(
+        lines.join('\n'),
+        td.todo_name,
+        {
+          confirmButtonText: '前往我的待办',
+          cancelButtonText:  '关闭',
+          type:              'info',
+        },
+      )
+      router.push({ name: 'Todos' })
+    } catch (e) {
+      if (e !== 'cancel') ElMessage.error(e?.message || '加载待办失败')
+    }
+    return
+  }
+
+  const meetingId = props.meeting_id
   if (!meetingId) return
   drawerMeetingId.value = meetingId
   drawerVisible.value   = true
@@ -257,11 +333,22 @@ function handleDateClick({ dateStr }) {
 
 // ─── 事件 Tooltip ─────────────────────────────────────────────────────────────
 function renderEventTooltip({ el, event }) {
-  const { location, host_name, status } = event.extendedProps ?? {}
+  const props = event.extendedProps ?? {}
+  if (props.calendar_kind === 'todo') {
+    const lines = [
+      props.executor_name ? `执行人：${props.executor_name}` : null,
+      props.priority ? `优先级：${props.priority}` : null,
+      event.start ? `截止：${dayjs(event.start).format('YYYY-MM-DD HH:mm')}` : null,
+    ].filter(Boolean)
+    if (lines.length) el.setAttribute('title', lines.join('\n'))
+    return
+  }
+
+  const { location, host_name, status } = props
   const lines = [
-    host_name  ? `主持人：${host_name}` : null,
-    location   ? `地点：${location}`  : null,
-    status     ? `状态：${STATUS_TEXT[status] ?? status}` : null,
+    host_name ? `主持人：${host_name}` : null,
+    location  ? `地点：${location}` : null,
+    status    ? `状态：${STATUS_TEXT[status] ?? status}` : null,
   ].filter(Boolean)
 
   if (lines.length) {
@@ -341,6 +428,13 @@ function handleFormSuccess() {
   gap: 10px;
 }
 
+.toolbar-hint {
+  font-size: 12px;
+  color: $text-secondary;
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
 .type-dot {
   display: inline-block;
   width: 8px;
@@ -374,6 +468,11 @@ function handleFormSuccess() {
 
   &:hover   { color: $text-primary; }
   &.dimmed  { opacity: 0.35; }
+
+  &--todo {
+    cursor: default;
+    &:hover { color: $text-secondary; }
+  }
 }
 
 .legend-dot {

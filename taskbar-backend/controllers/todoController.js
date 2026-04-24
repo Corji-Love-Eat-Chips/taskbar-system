@@ -76,6 +76,25 @@ async function myList(req, res) {
   return paginated(res, result.list, result.pagination)
 }
 
+// ── GET /api/todos/calendar ───────────────────────────────────────────────────
+/**
+ * 日程日历：有截止时间的待办（与会议日历合并展示）
+ */
+async function calendar(req, res) {
+  if (pickErrors(req, res)) return
+
+  const { start_date, end_date } = req.query
+  const list = await todoService.getCalendarTodos({
+    start_date,
+    end_date,
+    viewer: {
+      role:    req.currentUser.role,
+      staffId: req.currentUser.staffId,
+    },
+  })
+  return success(res, { list })
+}
+
 // ── GET /api/todos/shared ─────────────────────────────────────────────────────
 /**
  * 分享给我的待办
@@ -171,7 +190,7 @@ async function toggle(req, res) {
 }
 
 module.exports = {
-  list, myList, sharedList,
+  list, myList, calendar, sharedList,
   detail, create, update, remove,
   complete, uncomplete, toggle,
 }
