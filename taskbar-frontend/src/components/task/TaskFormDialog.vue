@@ -146,9 +146,8 @@
           placeholder="可多选（可选）"
           filterable
           multiple
-          collapse-tags
-          collapse-tags-tooltip
-          class="full-width"
+          :collapse-tags="false"
+          class="full-width select-collaborators-multiline"
         >
           <el-option
             v-for="s in collaboratorOptions"
@@ -445,6 +444,25 @@ watch(modelVisible, (open) => {
 .task-form { padding: 4px 0 0; }
 
 .full-width { width: 100%; }
+
+/* 协助人员：不折叠为 +N，标签可换行；勿对 selection 使用 flex-start，否则占位符会贴顶 */
+.select-collaborators-multiline {
+  :deep(.el-select__selection) {
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 4px 6px;
+  }
+
+  :deep(.el-select__selected-item) {
+    flex-shrink: 0;
+  }
+
+  :deep(.el-select__wrapper) {
+    align-items: center;
+    min-height: var(--el-component-size);
+    height: auto;
+  }
+}
 
 .form-loading { padding: 8px 0 4px; }
 
