@@ -8,6 +8,7 @@ const { body, param, query } = require('express-validator')
 const ctrl = require('../controllers/taskController')
 const { requireAuth, requireAdmin, requireAdminOrLeader } = require('../middlewares/auth')
 const { asyncHandler } = require('../utils/asyncHandler')
+const { uploadExcel } = require('../middlewares/uploadExcel')
 
 const router = Router()
 
@@ -47,6 +48,14 @@ router.get(
     query('pageSize').optional().isInt({ min: 1, max: 100 }).withMessage('pageSize 范围 1-100'),
   ],
   asyncHandler(ctrl.list),
+)
+
+/** POST /api/tasks/import  批量导入 Excel */
+router.post(
+  '/import',
+  requireAdminOrLeader,
+  uploadExcel.single('file'),
+  asyncHandler(ctrl.importExcel),
 )
 
 // ─── GET /api/tasks/:id ───────────────────────────────────────────────────────

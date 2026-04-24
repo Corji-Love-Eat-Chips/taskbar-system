@@ -99,6 +99,16 @@
         <el-button @click="handleRefresh">
           <el-icon><Refresh /></el-icon>
         </el-button>
+        <el-upload
+          v-if="userStore.isAdmin || userStore.isLeader"
+          :show-file-list="false"
+          accept=".xlsx,.xls"
+          :http-request="handleImportTasks"
+        >
+          <el-button>
+            <el-icon><Upload /></el-icon> 批量导入
+          </el-button>
+        </el-upload>
         <el-button
           v-if="userStore.isAdmin || userStore.isLeader"
           type="primary"
@@ -263,13 +273,13 @@
 <script setup>
 import { ref, reactive, watch, onMounted } from 'vue'
 import {
-  Search, Refresh, Plus, Warning,
+  Search, Refresh, Plus, Upload, Warning,
   CircleCloseFilled,
 } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useDebounceFn } from '@vueuse/core'
 import dayjs from 'dayjs'
-import { getTaskList, deleteTask } from '@/api/task'
+import { getTaskList, deleteTask, importTasks } from '@/api/task'
 import { getStaffAll } from '@/api/staff'
 import { getPeriodList } from '@/api/period'
 import { useUserStore } from '@/store/user'
@@ -459,6 +469,33 @@ function handleRefresh() {
   loadSemesterOptions()
   loadStaffOptions()
   loadTasks()
+}
+
+function showTaskImportErrors(err) {
+  const d = err?.response?.data
+  const list = d?.data?.errors
+  if (Array.isArray(list) && list.length) {
+    ElMessageBox.alert(
+      list.map((x) => `第 ${x.row} 行：${x.message}`).join('\n'),
+      '导入失败',
+      { type: 'error', confirmButtonText: '知道了' },
+    )
+    return true
+  }
+  return false
+}
+
+async function handleImportTasks({ file }) {
+  try {
+    const res = await importTasks(file)
+    ElMessage.success(res.message || '导入成功')
+    pagination.page = 1
+    loadTasks()
+  } catch (e) {
+    if (!showTaskImportErrors(e)) {
+      /* 已由 request 拦截器提示 */
+    }
+  }
 }
 
 // ── 详情抽屉 ──────────────────────────────────────────────────────────────────

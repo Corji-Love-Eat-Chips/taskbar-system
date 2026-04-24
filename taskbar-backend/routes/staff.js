@@ -2,6 +2,7 @@ const { Router } = require('express')
 const { body, query } = require('express-validator')
 const ctrl = require('../controllers/staffController')
 const { requireAuth, requireAdmin } = require('../middlewares/auth')
+const { uploadExcel } = require('../middlewares/uploadExcel')
 
 const router = Router()
 
@@ -12,6 +13,9 @@ router.use(requireAuth)
 
 /** GET /api/staff/all  下拉选项 */
 router.get('/all', ctrl.listAll)
+
+/** POST /api/staff/import  批量导入 Excel */
+router.post('/import', requireAdmin, uploadExcel.single('file'), ctrl.importExcel)
 
 // ─── 列表 / 详情 ──────────────────────────────────────────────────────────────
 

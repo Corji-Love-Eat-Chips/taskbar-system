@@ -95,9 +95,7 @@ export function updateTaskProgress(id, progress) {
 export function importTasks(file) {
   const formData = new FormData()
   formData.append('file', file)
-  return request.post('/tasks/import', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  return request.post('/tasks/import', formData)
 }
 
 /**

@@ -41,6 +41,16 @@
         <el-button :loading="loading" circle @click="loadStaff">
           <el-icon><Refresh /></el-icon>
         </el-button>
+        <el-upload
+          v-if="userStore.isAdmin"
+          :show-file-list="false"
+          accept=".xlsx,.xls"
+          :http-request="handleImportStaff"
+        >
+          <el-button>
+            <el-icon><Upload /></el-icon> 批量导入
+          </el-button>
+        </el-upload>
         <el-button type="primary" @click="openCreate">
           <el-icon><Plus /></el-icon> 新增人员
         </el-button>
@@ -241,12 +251,15 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, OfficeBuilding, Refresh, Plus, CircleCheckFilled } from '@element-plus/icons-vue'
+import { Search, OfficeBuilding, Refresh, Plus, Upload, CircleCheckFilled } from '@element-plus/icons-vue'
 import { useDebounceFn } from '@vueuse/core'
 import {
-  getStaffList, createStaff, updateStaff, deleteStaff, createUserForStaff,
+  getStaffList, createStaff, updateStaff, deleteStaff, createUserForStaff, importStaff,
 } from '@/api/staff'
 import { resetPassword } from '@/api/user'
+import { useUserStore } from '@/store/user'
+
+const userStore = useUserStore()
 
 // ── 常量 ──────────────────────────────────────────────────────────────────────
 const STATUS_MAP = {
@@ -284,6 +297,33 @@ async function loadStaff() {
 }
 
 const debouncedLoad = useDebounceFn(() => { page.value = 1; loadStaff() }, 400)
+
+function showImportErrors(err) {
+  const d = err?.response?.data
+  const list = d?.data?.errors
+  if (Array.isArray(list) && list.length) {
+    ElMessageBox.alert(
+      list.map((x) => `第 ${x.row} 行：${x.message}`).join('\n'),
+      '导入失败',
+      { type: 'error', confirmButtonText: '知道了' },
+    )
+    return true
+  }
+  return false
+}
+
+async function handleImportStaff({ file }) {
+  try {
+    const res = await importStaff(file)
+    ElMessage.success(res.message || '导入成功')
+    page.value = 1
+    loadStaff()
+  } catch (e) {
+    if (!showImportErrors(e)) {
+      /* request 拦截器已提示 */
+    }
+  }
+}
 
 // ── 新增 / 编辑 ───────────────────────────────────────────────────────────────
 const formVisible = ref(false)

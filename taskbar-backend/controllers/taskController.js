@@ -6,6 +6,7 @@
 const { validationResult } = require('express-validator')
 const taskService = require('../services/taskService')
 const { success, created, paginated, fail } = require('../utils/response')
+const { asyncHandler } = require('../utils/asyncHandler')
 
 // ── 工具 ──────────────────────────────────────────────────────────────────────
 function pickErrors(req, res) {
@@ -116,7 +117,23 @@ async function removeCollaborator(req, res) {
   return success(res, null, '协助人已移除')
 }
 
+/** POST /api/tasks/import  批量导入 */
+const importExcel = asyncHandler(async (req, res) => {
+  if (!req.file?.buffer) {
+    return fail(res, '请上传有效的 Excel 文件（扩展名 .xlsx / .xls，最大 5MB）', 400)
+  }
+  const result = await taskService.importTasksFromExcelBuffer(
+    req.file.buffer,
+    req.currentUser.userId,
+  )
+  if (!result.ok) {
+    return fail(res, '导入未执行，请根据下列提示修正表格后重试', 400, { errors: result.errors })
+  }
+  return success(res, { imported: result.imported }, `成功导入 ${result.imported} 条任务`)
+})
+
 module.exports = {
   list, detail, create, update, updateProgress, remove,
   listCollaborators, addCollaborator, removeCollaborator,
+  importExcel,
 }

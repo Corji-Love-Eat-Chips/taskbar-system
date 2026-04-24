@@ -1,5 +1,10 @@
 const pool = require('../config/database')
 const { createError } = require('../utils/response')
+const {
+  sheetToRecords,
+  parseContact,
+  normalizeGender,
+} = require('../utils/excelImport')
 
 // ─── 查询 ─────────────────────────────────────────────────────────────────────
 
@@ -199,6 +204,132 @@ async function deleteStaff(staffId) {
   } finally { conn.release() }
 }
 
+// ─── 批量导入（Excel）──────────────────────────────────────────────────────────
+
+const STAFF_REQUIRED_COLS = ['工号', '姓名', '部门']
+
+/**
+ * 从 Excel 缓冲导入人员；全部校验通过后一次性写入。默认状态均为在职。
+ * @param {Buffer} buffer
+ * @returns {Promise<{ ok: true, imported: number } | { ok: false, errors: Array<{ row: number, message: string }> }>}
+ */
+async function importStaffFromExcelBuffer(buffer) {
+  /** @type {Array<{ row: number, message: string }>} */
+  const errors = []
+  let records
+  try {
+    records = sheetToRecords(buffer)
+  } catch (e) {
+    return { ok: false, errors: [{ row: 0, message: `无法读取 Excel：${e.message}` }] }
+  }
+  if (!records.length) {
+    return { ok: false, errors: [{ row: 0, message: '表格中没有数据行' }] }
+  }
+  const headerKeys = Object.keys(records[0])
+  for (const col of STAFF_REQUIRED_COLS) {
+    if (!headerKeys.includes(col)) {
+      return { ok: false, errors: [{ row: 1, message: `表头缺少必填列「${col}」，请使用第一行作为列名` }] }
+    }
+  }
+
+  /** @type {Array<{ excelRow: number, staffCode: string, name: string, department: string, position: string|null, gender: string|null, phone: string|null, email: string|null }>} */
+  const normalized = []
+
+  for (let i = 0; i < records.length; i++) {
+    const r = records[i]
+    const excelRow = i + 2
+    const staffCode = String(r['工号'] ?? '').trim()
+    const name = String(r['姓名'] ?? '').trim()
+    const department = String(r['部门'] ?? '').trim()
+    const positionRaw = String(r['职位'] ?? '').trim()
+    const position = positionRaw || null
+    const genderVal = normalizeGender(r['性别'])
+    const contact = parseContact(r['联系方式'])
+
+    if (!staffCode) errors.push({ row: excelRow, message: '工号不能为空' })
+    else if (staffCode.length > 20) errors.push({ row: excelRow, message: '工号最长 20 字符' })
+
+    if (!name) errors.push({ row: excelRow, message: '姓名不能为空' })
+    else if (name.length > 50) errors.push({ row: excelRow, message: '姓名最长 50 字符' })
+
+    if (!department) errors.push({ row: excelRow, message: '部门不能为空' })
+    else if (department.length > 50) errors.push({ row: excelRow, message: '部门最长 50 字符' })
+
+    if (position && position.length > 50) errors.push({ row: excelRow, message: '职位最长 50 字符' })
+
+    const genderCell = r['性别']
+    if (genderCell !== '' && genderCell != null && String(genderCell).trim() && !genderVal) {
+      errors.push({ row: excelRow, message: '性别请填写：男 或 女（可留空）' })
+    }
+
+    if (contact.error) errors.push({ row: excelRow, message: contact.error })
+
+    normalized.push({
+      excelRow,
+      staffCode,
+      name,
+      department,
+      position,
+      gender: genderVal || null,
+      phone: contact.phone,
+      email: contact.email,
+    })
+  }
+
+  const codeToRows = new Map()
+  for (const row of normalized) {
+    if (!row.staffCode) continue
+    if (!codeToRows.has(row.staffCode)) codeToRows.set(row.staffCode, [])
+    codeToRows.get(row.staffCode).push(row.excelRow)
+  }
+  for (const [code, rows] of codeToRows) {
+    if (rows.length > 1) {
+      for (const excelRow of rows) {
+        errors.push({ row: excelRow, message: `表格内工号「${code}」重复，请删除重复行` })
+      }
+    }
+  }
+
+  const uniqueCodes = [...codeToRows.keys()].filter(Boolean)
+  if (uniqueCodes.length) {
+    const [dbRows] = await pool.query(
+      'SELECT staff_code FROM staff WHERE staff_code IN (?)',
+      [uniqueCodes],
+    )
+    const existing = new Set(dbRows.map((x) => x.staff_code))
+    for (const row of normalized) {
+      if (row.staffCode && existing.has(row.staffCode)) {
+        errors.push({
+          row: row.excelRow,
+          message: `工号「${row.staffCode}」已在系统中存在，无法重复导入`,
+        })
+      }
+    }
+  }
+
+  if (errors.length) return { ok: false, errors }
+
+  const conn = await pool.getConnection()
+  try {
+    await conn.beginTransaction()
+    for (const row of normalized) {
+      await conn.query(
+        `INSERT INTO staff (staff_code, name, gender, department, position, phone, email, status)
+         VALUES (?,?,?,?,?,?,?,'active')`,
+        [row.staffCode, row.name, row.gender, row.department, row.position,
+          row.phone, row.email],
+      )
+    }
+    await conn.commit()
+    return { ok: true, imported: normalized.length }
+  } catch (e) {
+    await conn.rollback()
+    throw e
+  } finally {
+    conn.release()
+  }
+}
+
 module.exports = {
   getStaffList,
   getActiveStaffAll,
@@ -208,4 +339,5 @@ module.exports = {
   deleteStaff,
   countActiveTasks,
   countActiveMeetings,
+  importStaffFromExcelBuffer,
 }

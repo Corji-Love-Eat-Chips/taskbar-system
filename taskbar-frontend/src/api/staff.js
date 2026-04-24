@@ -81,3 +81,15 @@ export function deleteStaff(id) {
 export function createUserForStaff(id, data) {
   return request.post(`/staff/${id}/create-user`, data)
 }
+
+/**
+ * 批量导入人员（Excel）
+ * @param {File} file
+ * @returns {Promise<{ code, data: { imported: number }, message: string }>}
+ */
+export function importStaff(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  // 勿手动设置 Content-Type，以便浏览器自动带 boundary
+  return request.post('/staff/import', formData)
+}

@@ -7,6 +7,13 @@
 
 const pool = require('../config/database')
 const { createError } = require('../utils/response')
+const {
+  TASK_CATEGORIES,
+  sheetToRecords,
+  cellToYMD,
+  normalizePriority,
+  splitStaffCodes,
+} = require('../utils/excelImport')
 
 // ─── 工具 ─────────────────────────────────────────────────────────────────────
 
@@ -405,6 +412,203 @@ async function _setCollaborators(conn, taskId, staffIds) {
   )
 }
 
+// ─── 批量导入（Excel）──────────────────────────────────────────────────────────
+
+const TASK_IMPORT_REQUIRED = ['任务名称', '负责人工号', '任务分类', '开始日期', '截止日期']
+
+function isValidYMD(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false
+  const d = new Date(`${s}T12:00:00`)
+  return !Number.isNaN(d.getTime())
+}
+
+/**
+ * @param {Buffer} buffer
+ * @param {number} createdByUserId
+ */
+async function importTasksFromExcelBuffer(buffer, createdByUserId) {
+  /** @type {Array<{ row: number, message: string }>} */
+  const errors = []
+  let records
+  try {
+    records = sheetToRecords(buffer)
+  } catch (e) {
+    return { ok: false, errors: [{ row: 0, message: `无法读取 Excel：${e.message}` }] }
+  }
+  if (!records.length) {
+    return { ok: false, errors: [{ row: 0, message: '表格中没有数据行' }] }
+  }
+  const headerKeys = Object.keys(records[0])
+  for (const col of TASK_IMPORT_REQUIRED) {
+    if (!headerKeys.includes(col)) {
+      return { ok: false, errors: [{ row: 1, message: `表头缺少必填列「${col}」` }] }
+    }
+  }
+
+  const [staffRows] = await pool.query(
+    'SELECT staff_id, staff_code FROM staff WHERE status = ?',
+    ['active'],
+  )
+  const codeToId = new Map(staffRows.map((s) => [String(s.staff_code).trim(), s.staff_id]))
+
+  const [periodRows] = await pool.query('SELECT period_id, period_name FROM periods')
+  const periodNameToId = new Map(
+    periodRows.map((p) => [String(p.period_name).trim(), p.period_id]),
+  )
+
+  const [existingTasks] = await pool.query('SELECT task_name FROM tasks')
+  const existingNames = new Set(existingTasks.map((t) => String(t.task_name).trim()))
+
+  /** @type {Array<{
+   * excelRow: number, task_name: string, owner_id: number, period_id: number|null,
+   * category: string, start_date: string, end_date: string, priority: string,
+   * description: string|null, remarks: string|null, collaborator_ids: number[]
+   * }>} */
+  const normalized = []
+
+  for (let i = 0; i < records.length; i++) {
+    const r = records[i]
+    const excelRow = i + 2
+    const taskName = String(r['任务名称'] ?? '').trim()
+    const ownerCode = String(r['负责人工号'] ?? '').trim()
+    const periodName = String(r['周期名称'] ?? '').trim()
+    const category = String(r['任务分类'] ?? '').trim()
+    const startRaw = r['开始日期']
+    const endRaw = r['截止日期']
+    const start_date = cellToYMD(startRaw)
+    const end_date = cellToYMD(endRaw)
+    const priCell = String(r['优先级'] ?? '').trim()
+    const description = String(r['任务描述'] ?? '').trim() || null
+    const remarks = String(r['备注'] ?? '').trim() || null
+    const collabCodes = splitStaffCodes(r['协助人工号'])
+
+    if (!taskName) errors.push({ row: excelRow, message: '任务名称不能为空' })
+    else if (taskName.length > 100) errors.push({ row: excelRow, message: '任务名称最长 100 字' })
+
+    if (!ownerCode) errors.push({ row: excelRow, message: '负责人工号不能为空' })
+    else if (!codeToId.has(ownerCode)) {
+      errors.push({ row: excelRow, message: `负责人工号「${ownerCode}」不存在或不是在职人员` })
+    }
+
+    let period_id = null
+    if (periodName) {
+      if (!periodNameToId.has(periodName)) {
+        errors.push({ row: excelRow, message: `周期名称「${periodName}」在系统中不存在` })
+      } else {
+        period_id = periodNameToId.get(periodName)
+      }
+    }
+
+    if (!category) errors.push({ row: excelRow, message: '任务分类不能为空' })
+    else if (!TASK_CATEGORIES.includes(category)) {
+      errors.push({
+        row: excelRow,
+        message: `任务分类须为以下之一：${TASK_CATEGORIES.join('、')}`,
+      })
+    }
+
+    if (!start_date) errors.push({ row: excelRow, message: '开始日期不能为空或格式无效' })
+    else if (!isValidYMD(start_date)) errors.push({ row: excelRow, message: `开始日期无效：${start_date}` })
+
+    if (!end_date) errors.push({ row: excelRow, message: '截止日期不能为空或格式无效' })
+    else if (!isValidYMD(end_date)) errors.push({ row: excelRow, message: `截止日期无效：${end_date}` })
+
+    if (start_date && end_date && isValidYMD(start_date) && isValidYMD(end_date)) {
+      if (new Date(start_date) > new Date(end_date)) {
+        errors.push({ row: excelRow, message: '开始日期不能晚于截止日期' })
+      }
+    }
+
+    let priority = 'medium'
+    if (priCell) {
+      const p = normalizePriority(r['优先级'])
+      if (p == null) {
+        errors.push({ row: excelRow, message: '优先级请填：高 / 中 / 低，或留空（默认中）' })
+      } else {
+        priority = p
+      }
+    }
+
+    const owner_id = codeToId.get(ownerCode) || 0
+    const collaborator_ids = []
+    for (const cc of collabCodes) {
+      if (!codeToId.has(cc)) {
+        errors.push({ row: excelRow, message: `协助人工号「${cc}」不存在或不是在职人员` })
+      } else {
+        const sid = codeToId.get(cc)
+        if (sid !== owner_id) collaborator_ids.push(sid)
+      }
+    }
+
+    normalized.push({
+      excelRow,
+      task_name: taskName,
+      owner_id,
+      period_id,
+      category,
+      start_date,
+      end_date,
+      priority,
+      description,
+      remarks,
+      collaborator_ids,
+    })
+  }
+
+  const nameToRows = new Map()
+  for (const row of normalized) {
+    if (!row.task_name) continue
+    if (!nameToRows.has(row.task_name)) nameToRows.set(row.task_name, [])
+    nameToRows.get(row.task_name).push(row.excelRow)
+  }
+  for (const [tname, rows] of nameToRows) {
+    if (rows.length > 1) {
+      for (const excelRow of rows) {
+        errors.push({ row: excelRow, message: `表格内任务名称重复：「${tname}」` })
+      }
+    }
+  }
+
+  for (const row of normalized) {
+    if (row.task_name && existingNames.has(row.task_name)) {
+      errors.push({
+        row: row.excelRow,
+        message: `任务名称「${row.task_name}」已在系统中存在，不能重复导入`,
+      })
+    }
+  }
+
+  if (errors.length) return { ok: false, errors }
+
+  const conn = await pool.getConnection()
+  try {
+    await conn.beginTransaction()
+    for (const row of normalized) {
+      const task_no = await genTaskNo(conn)
+      const [result] = await conn.query(
+        `INSERT INTO tasks
+           (task_no, task_name, period_id, owner_id, description,
+            priority, category, start_date, end_date, remarks, created_by)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+        [task_no, row.task_name, row.period_id || null, row.owner_id,
+          row.description, row.priority, row.category,
+          row.start_date, row.end_date, row.remarks, createdByUserId],
+      )
+      const taskId = result.insertId
+      if (row.collaborator_ids.length) {
+        await _setCollaborators(conn, taskId, row.collaborator_ids)
+      }
+    }
+    await conn.commit()
+    return { ok: true, imported: normalized.length }
+  } catch (e) {
+    await conn.rollback()
+    throw e
+  } finally {
+    conn.release()
+  }
+}
+
 module.exports = {
   getTaskList,
   getTaskById,
@@ -415,4 +619,5 @@ module.exports = {
   getCollaborators,
   addCollaborator,
   removeCollaborator,
+  importTasksFromExcelBuffer,
 }

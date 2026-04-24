@@ -98,4 +98,18 @@ const createUser = asyncHandler(async (req, res, next) => {
   }
 })
 
-module.exports = { list, listAll, detail, create, update, remove, createUser }
+/**
+ * POST /api/staff/import  批量导入（multipart file）
+ */
+const importExcel = asyncHandler(async (req, res) => {
+  if (!req.file?.buffer) {
+    return fail(res, '请上传有效的 Excel 文件（扩展名 .xlsx / .xls，最大 5MB）', 400)
+  }
+  const result = await staffService.importStaffFromExcelBuffer(req.file.buffer)
+  if (!result.ok) {
+    return fail(res, '导入未执行，请根据下列提示修正表格后重试', 400, { errors: result.errors })
+  }
+  return success(res, { imported: result.imported }, `成功导入 ${result.imported} 条人员`)
+})
+
+module.exports = { list, listAll, detail, create, update, remove, createUser, importExcel }
