@@ -4,6 +4,8 @@
   box-sizing: border-box;
 }
 
+// 字号由 composables/useAppFontSize.js → applyFontSize() 写入 html 的 style 与 CSS 变量
+
 html,
 body,
 #app {
@@ -21,6 +23,8 @@ body {
     sans-serif;
   background: $bg-page;
   color: $text-primary;
+  /* 与 Element Plus 正文档位一致，随 --el-font-size-base 变化 */
+  font-size: var(--el-font-size-base, 14px);
 }
 
 // ── 滚动条 ──────────────────────────────────────────────────────────────────

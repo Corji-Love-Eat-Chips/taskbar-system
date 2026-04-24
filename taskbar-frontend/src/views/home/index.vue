@@ -7,13 +7,39 @@
         <h2>你好，{{ userStore.userInfo?.staff_name || userStore.username }} 👋</h2>
         <p>欢迎使用工作计划管理平台 · {{ todayStr }}</p>
       </div>
-      <div class="welcome-actions">
-        <el-button type="primary" plain size="small" @click="$router.push('/tasks')">
-          <el-icon><List /></el-icon> 查看任务
-        </el-button>
-        <el-button type="success" plain size="small" @click="$router.push('/meetings')">
-          <el-icon><Calendar /></el-icon> 会议日历
-        </el-button>
+      <div class="welcome-right">
+        <!-- 字号：滑动方块分段 -->
+        <div class="font-size-control" role="group" aria-label="界面字号">
+          <span class="font-size-control__label">
+            <el-icon><Operation /></el-icon> 字号
+          </span>
+          <div class="font-slide" role="tablist" aria-label="小中大">
+            <div
+              class="font-slide__thumb"
+              :style="{ transform: `translateX(${slideIndex * 100}%)` }"
+            />
+            <button
+              v-for="opt in fontOptions"
+              :key="opt.value"
+              type="button"
+              role="tab"
+              class="font-slide__btn"
+              :class="{ 'is-active': fontSize === opt.value }"
+              :aria-selected="fontSize === opt.value"
+              @click="setFontSize(opt.value)"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+        </div>
+        <div class="welcome-actions">
+          <el-button type="primary" plain size="small" @click="$router.push('/tasks')">
+            <el-icon><List /></el-icon> 查看任务
+          </el-button>
+          <el-button type="success" plain size="small" @click="$router.push('/meetings')">
+            <el-icon><Calendar /></el-icon> 会议日历
+          </el-button>
+        </div>
       </div>
     </div>
 
@@ -27,7 +53,7 @@
             </el-icon>
             <div class="stat-content">
               <div class="stat-num">
-                <el-skeleton-item v-if="statsLoading" variant="text" style="width:48px;height:28px" />
+                <el-skeleton-item v-if="statsLoading" variant="text" class="stat-num-skeleton" />
                 <span v-else>{{ stat.value }}</span>
               </div>
               <div class="stat-label">{{ stat.label }}</div>
@@ -113,7 +139,7 @@
                 <div class="meeting-meta">
                   <el-icon><Clock /></el-icon>
                   {{ fmtTime(m.start_time) }}
-                  <el-icon style="margin-left:6px"><Location /></el-icon>
+                  <el-icon class="meeting-meta__loc-icon"><Location /></el-icon>
                   {{ m.location }}
                 </div>
               </div>
@@ -160,12 +186,20 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { List, Calendar, Checked, Warning, Clock, Location, Minus } from '@element-plus/icons-vue'
+import { List, Calendar, Checked, Warning, Clock, Location, Minus, Operation } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import { getDashboardStats, getDashboardHome } from '@/api/dashboard'
 import { useUserStore } from '@/store/user'
+import { useAppFontSize } from '@/composables/useAppFontSize'
 
 const userStore = useUserStore()
+
+const { fontSize, setFontSize, slideIndex } = useAppFontSize()
+const fontOptions = [
+  { value: 'sm', label: '小' },
+  { value: 'md', label: '中' },
+  { value: 'lg', label: '大' },
+]
 
 // ── 常量 ──────────────────────────────────────────────────────────────────────
 const PRIORITY_MAP = {
@@ -296,25 +330,112 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-.page-home { display: flex; flex-direction: column; gap: 16px; }
+// 字号随全局 html 基准（小/中/大）缩放，勿写死 px
+.page-home { display: flex; flex-direction: column; gap: 1rem; }
 
 // ── 欢迎横幅 ─────────────────────────────────────────────────────────────────
 .welcome-banner {
   background: linear-gradient(135deg, #1e3a5f, #2d6a9f);
-  border-radius: 10px;
-  padding: 22px 28px;
+  border-radius: 0.625rem;
+  padding: 1.375rem 1.75rem;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 0.75rem;
 
-  h2 { margin: 0 0 4px; font-size: 20px; }
-  p  { margin: 0; font-size: 13px; opacity: .75; }
+  h2 { margin: 0 0 0.25rem; font-size: 1.25rem; }
+  p  { margin: 0; font-size: 0.8125rem; opacity: .75; }
 }
 
-.welcome-actions { display: flex; gap: 10px; flex-shrink: 0; }
+.welcome-right {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.875rem 1rem;
+  flex-shrink: 0;
+}
+
+.welcome-actions { display: flex; gap: 0.625rem; flex-shrink: 0; }
+
+// ── 首页字号：滑动方块分段 ───────────────────────────────────────────────────
+.font-size-control {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.font-size-control__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.88);
+  white-space: nowrap;
+  opacity: 0.95;
+
+  .el-icon { font-size: 0.875rem; }
+}
+
+.font-slide {
+  position: relative;
+  display: flex;
+  width: 9.75rem;
+  height: 2rem;
+  padding: 0.1875rem;
+  border-radius: 0.625rem;
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.font-slide__thumb {
+  position: absolute;
+  top: 0.1875rem;
+  left: 0.1875rem;
+  width: calc((100% - 0.375rem) / 3);
+  height: calc(100% - 0.375rem);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  pointer-events: none;
+  z-index: 0;
+  transition: transform 0.32s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+
+.font-slide__btn {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  border-radius: 0.5rem;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  &.is-active {
+    color: #1e3a5f;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.85);
+    outline-offset: 2px;
+  }
+}
 
 // ── 统计卡片 ─────────────────────────────────────────────────────────────────
 .stat-row {
@@ -327,26 +448,31 @@ onMounted(() => {
   }
 }
 
+.stat-num-skeleton {
+  width: 3rem;
+  height: 1.75rem;
+}
+
 .stat-card {
-  border-radius: 10px;
+  border-radius: 0.625rem;
   flex: 1;
   width: 100%;
   min-width: 0;
 
-  :deep(.el-card__body) { padding: 16px; }
+  :deep(.el-card__body) { padding: 1rem; }
 }
 
 .stat-inner {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 0.875rem;
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
-  font-size: 22px;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.625rem;
+  font-size: 1.375rem;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -356,25 +482,25 @@ onMounted(() => {
 .stat-content { flex: 1; min-width: 0; }
 
 .stat-num {
-  font-size: 26px;
+  font-size: 1.625rem;
   font-weight: 700;
   color: $text-primary;
   line-height: 1.2;
 }
 
 .stat-label {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: $text-secondary;
-  margin-top: 2px;
+  margin-top: 0.125rem;
 }
 
 .stat-sub {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: $text-disabled;
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
   border-top: 1px dashed $border-lighter;
-  min-height: 34px;
+  min-height: 2.125rem;
   line-height: 1.4;
 }
 
@@ -383,10 +509,10 @@ onMounted(() => {
 
 .panel-card {
   height: 100%;
-  border-radius: 10px;
+  border-radius: 0.625rem;
 
-  :deep(.el-card__header) { padding: 12px 16px; }
-  :deep(.el-card__body)   { padding: 8px 16px 16px; }
+  :deep(.el-card__header) { padding: 0.75rem 1rem; }
+  :deep(.el-card__body)   { padding: 0.5rem 1rem 1rem; }
 }
 
 .panel-header {
@@ -396,26 +522,26 @@ onMounted(() => {
 }
 
 .panel-title {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   color: $text-primary;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.375rem;
 
   .el-icon { color: $primary; }
 }
 
 .panel-empty {
-  padding: 24px 0;
+  padding: 1.5rem 0;
   text-align: center;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: $text-disabled;
 }
 
 // ── 任务条目 ─────────────────────────────────────────────────────────────────
 .task-item {
-  padding: 10px 0;
+  padding: 0.625rem 0;
   border-bottom: 1px solid $border-lighter;
 
   &:last-child { border-bottom: none; }
@@ -425,12 +551,12 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
 }
 
 .task-name {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: $text-primary;
   font-weight: 500;
   overflow: hidden;
@@ -442,20 +568,20 @@ onMounted(() => {
 .task-item__bottom {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .task-owner {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: $text-secondary;
   flex-shrink: 0;
-  min-width: 40px;
+  min-width: 2.5rem;
 }
 
 .task-progress { flex: 1; }
 
 .task-date {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: $text-secondary;
   flex-shrink: 0;
 
@@ -466,64 +592,66 @@ onMounted(() => {
 .meeting-item {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 10px 0;
+  gap: 0.625rem;
+  padding: 0.625rem 0;
   border-bottom: 1px solid $border-lighter;
 
   &:last-child { border-bottom: none; }
 }
 
 .meeting-type-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 0.1875rem;
   flex-shrink: 0;
-  margin-top: 3px;
+  margin-top: 0.1875rem;
 }
 
 .meeting-info { flex: 1; min-width: 0; }
 
 .meeting-name {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: $text-primary;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
 }
 
 .meeting-meta {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
+  gap: 0.25rem;
+  font-size: 0.75rem;
   color: $text-secondary;
 
-  .el-icon { font-size: 12px; }
+  .el-icon { font-size: 0.75rem; }
+
+  .meeting-meta__loc-icon { margin-left: 0.375rem; }
 }
 
 // ── 待办条目 ─────────────────────────────────────────────────────────────────
 .todo-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 0;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
   border-bottom: 1px solid $border-lighter;
 
   &:last-child { border-bottom: none; }
 }
 
 .todo-priority-dot {
-  width: 8px;
-  height: 8px;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
 .todo-name {
   flex: 1;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: $text-primary;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -531,7 +659,7 @@ onMounted(() => {
 }
 
 .todo-deadline {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: $text-secondary;
   flex-shrink: 0;
 

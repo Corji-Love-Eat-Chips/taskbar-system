@@ -72,7 +72,7 @@
 
         <el-empty
           v-if="!taskLoading && !filteredTaskGroups.length"
-          :image-size="60"
+          class="task-panel-empty"
           description="暂无相关任务"
         />
       </el-scrollbar>
@@ -115,7 +115,7 @@
             placeholder="全部优先级"
             clearable
             size="small"
-            style="width:130px"
+            class="todo-priority-select"
             @change="applyFilter"
           >
             <el-option label="紧急" value="urgent" />
@@ -218,7 +218,6 @@
           <!-- 无数据 -->
           <el-empty
             v-if="!todoGroups.length && !todoLoading"
-            :image-size="80"
             description="暂无待办，点击右上角新增"
             class="todo-empty"
           />
@@ -498,48 +497,61 @@ loadTodos()   // 初始加载全部待办
 </script>
 
 <style lang="scss" scoped>
+// 字号随 html rem 基准缩放（与全局小/中/大一致）
+
+.todo-priority-select {
+  width: 8.125rem;
+}
+
 // ── 页面双栏布局 ──────────────────────────────────────────────────────────────
 .page-todos {
   display: flex;
-  gap: 16px;
-  height: calc(100vh - 124px);  // header(60) + breadcrumb(44) + padding(20)
-  min-height: 500px;
+  gap: 1rem;
+  height: calc(100vh - 7.75rem);
+  min-height: 31.25rem;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 左侧任务面板
 // ══════════════════════════════════════════════════════════════════════════════
 .task-panel {
-  width: 260px;
+  width: 16.25rem;
   flex-shrink: 0;
   background: $bg-card;
-  border-radius: 10px;
+  border-radius: 0.625rem;
   border: 1px solid $border-light;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
+.task-panel-empty {
+  :deep(.el-empty__image) {
+    width: 3.75rem;
+    height: 3.75rem;
+  }
+}
+
 .panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px 10px;
+  padding: 0.875rem 1rem 0.625rem;
   border-bottom: 1px solid $border-lighter;
 
   .panel-title {
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 600;
     color: $text-primary;
   }
 }
 
 .task-search {
-  padding: 8px 12px;
+  padding: 0.5rem 0.75rem;
   border-bottom: 1px solid $border-lighter;
 }
 
-.task-skeleton { padding: 12px; }
+.task-skeleton { padding: 0.75rem; }
 
 .task-scroll {
   flex: 1;
@@ -547,24 +559,24 @@ loadTodos()   // 初始加载全部待办
 }
 
 // ── 任务分组 ──────────────────────────────────────────────────────────────────
-.task-group { padding-bottom: 4px; }
+.task-group { padding-bottom: 0.25rem; }
 
 .task-group__header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
+  gap: 0.375rem;
+  padding: 0.4375rem 0.75rem;
   cursor: pointer;
   user-select: none;
   color: $text-secondary;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.025rem;
 
   &:hover { background: $bg-page; }
 
   .collapse-icon {
-    font-size: 12px;
+    font-size: 0.75rem;
     transition: transform 0.2s;
     &.rotated { transform: rotate(90deg); }
   }
@@ -575,20 +587,20 @@ loadTodos()   // 初始加载全部待办
     :deep(.el-badge__content) {
       background: $border-base;
       color: $text-secondary;
-      font-size: 11px;
-      min-width: 18px;
-      height: 18px;
-      line-height: 18px;
+      font-size: 0.6875rem;
+      min-width: 1.125rem;
+      height: 1.125rem;
+      line-height: 1.125rem;
     }
   }
 }
 
-.task-group__body { padding: 0 8px 4px; }
+.task-group__body { padding: 0 0.5rem 0.25rem; }
 
 // ── 任务条目 ──────────────────────────────────────────────────────────────────
 .task-item {
-  padding: 8px 10px;
-  border-radius: 6px;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.375rem;
   cursor: pointer;
   transition: background 0.15s;
 
@@ -596,21 +608,21 @@ loadTodos()   // 初始加载全部待办
   &.active   { background: #e8f0fe; }
 
   .task-item__name {
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: $text-primary;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    margin-bottom: 5px;
+    margin-bottom: 0.3125rem;
   }
 
   .task-item__meta {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 0.375rem;
 
     .task-progress-mini { flex: 1; }
-    .task-progress-text { font-size: 11px; color: $text-secondary; flex-shrink: 0; }
+    .task-progress-text { font-size: 0.6875rem; color: $text-secondary; flex-shrink: 0; }
   }
 }
 
@@ -618,10 +630,10 @@ loadTodos()   // 初始加载全部待办
 .personal-entry {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
   border-top: 1px solid $border-lighter;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: $text-regular;
   flex-shrink: 0;
 
@@ -635,7 +647,7 @@ loadTodos()   // 初始加载全部待办
 .slide-down-enter-from,
 .slide-down-leave-to     { max-height: 0; opacity: 0; }
 .slide-down-enter-to,
-.slide-down-leave-from   { max-height: 600px; opacity: 1; }
+.slide-down-leave-from   { max-height: 37.5rem; opacity: 1; }
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 右侧待办面板
@@ -643,7 +655,7 @@ loadTodos()   // 初始加载全部待办
 .todo-panel {
   flex: 1;
   background: $bg-card;
-  border-radius: 10px;
+  border-radius: 0.625rem;
   border: 1px solid $border-light;
   display: flex;
   flex-direction: column;
@@ -656,21 +668,21 @@ loadTodos()   // 初始加载全部待办
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid $border-lighter;
-  gap: 12px;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
 .toolbar-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
   flex: 1;
   min-width: 0;
 
   .todo-title {
-    font-size: 15px;
+    font-size: 0.9375rem;
     font-weight: 600;
     color: $text-primary;
     overflow: hidden;
@@ -682,44 +694,51 @@ loadTodos()   // 初始加载全部待办
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
   flex-shrink: 0;
 }
 
 // ── 待办内容区 ────────────────────────────────────────────────────────────────
 .todo-scroll { flex: 1; }
 
-.todo-loading-wrap { padding: 20px; }
+.todo-loading-wrap { padding: 1.25rem; }
 
-.todo-empty { padding: 40px 0; }
+.todo-empty {
+  padding: 2.5rem 0;
+
+  :deep(.el-empty__image) {
+    width: 5rem;
+    height: 5rem;
+  }
+}
 
 // ── 优先级分组 ────────────────────────────────────────────────────────────────
 .todo-group {
-  margin: 12px 16px;
+  margin: 0.75rem 1rem;
   border: 1px solid $border-lighter;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   overflow: hidden;
 }
 
 .todo-group__header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
   background: $bg-page;
-  border-left: 4px solid;
-  font-size: 12px;
+  border-left: 0.25rem solid;
+  font-size: 0.75rem;
   font-weight: 600;
   color: $text-secondary;
 
-  .group-icon { font-size: 8px; }
+  .group-icon { font-size: 0.5rem; }
   .group-name { flex: 1; }
   .group-count {
-    font-size: 11px;
+    font-size: 0.6875rem;
     background: $border-base;
     color: $text-secondary;
-    border-radius: 10px;
-    padding: 1px 7px;
+    border-radius: 0.625rem;
+    padding: 0.0625rem 0.4375rem;
   }
 }
 
@@ -727,8 +746,8 @@ loadTodos()   // 初始加载全部待办
 .todo-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 0.625rem;
+  padding: 0.625rem 0.875rem;
   border-bottom: 1px solid $border-lighter;
   transition: background 0.15s;
 
@@ -744,7 +763,7 @@ loadTodos()   // 初始加载全部待办
 .drag-handle {
   color: $border-base;
   cursor: grab;
-  font-size: 16px;
+  font-size: 1rem;
   flex-shrink: 0;
 
   &:hover { color: $text-secondary; }
@@ -756,11 +775,11 @@ loadTodos()   // 初始加载全部待办
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.625rem;
 }
 
 .todo-name {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: $text-primary;
   flex: 1;
   overflow: hidden;
@@ -771,15 +790,15 @@ loadTodos()   // 初始加载全部待办
 .todo-deadline {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  font-size: 12px;
+  gap: 0.1875rem;
+  font-size: 0.75rem;
   color: $text-secondary;
   white-space: nowrap;
   flex-shrink: 0;
 
   &.overdue { color: $danger; }
 
-  .el-icon { font-size: 12px; }
+  .el-icon { font-size: 0.75rem; }
 }
 
 .todo-actions {
@@ -799,9 +818,9 @@ loadTodos()   // 初始加载全部待办
 .todo-add-inline {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  font-size: 12px;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.75rem;
   color: $text-secondary;
   cursor: pointer;
   border-top: 1px dashed $border-lighter;
