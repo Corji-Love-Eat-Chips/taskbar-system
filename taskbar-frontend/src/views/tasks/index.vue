@@ -254,7 +254,7 @@
     <!-- ── 新增/编辑弹窗 ──────────────────────────────────────────────────────── -->
     <TaskFormDialog
       v-model="formVisible"
-      :task-data="formTaskData"
+      :task-id="formTaskData?.task_id ?? null"
       @success="handleFormSuccess"
     />
   </div>

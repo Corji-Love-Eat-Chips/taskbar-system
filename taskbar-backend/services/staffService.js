@@ -22,7 +22,10 @@ async function getStaffList({ name, department, status, page = 1, pageSize = 20 
   const [list] = await pool.query(
     `SELECT s.staff_id, s.staff_code, s.name, s.gender,
             s.department, s.position, s.phone, s.email,
-            s.status, s.created_at
+            s.status, s.created_at,
+            (SELECT u.user_id FROM users u
+              WHERE u.staff_id = s.staff_id
+              LIMIT 1) AS user_id
        FROM staff s
       ${where}
       ORDER BY s.staff_id ASC

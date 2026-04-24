@@ -1,12 +1,11 @@
 <template>
   <el-dialog
-    :model-value="visible"
+    v-model="modelVisible"
     :title="isEdit ? '编辑任务' : '新增任务'"
     width="680px"
     destroy-on-close
     :close-on-click-modal="false"
     class="task-form-dialog"
-    @update:model-value="emit('update:visible', $event)"
     @closed="handleClosed"
   >
     <!-- 加载骨架（编辑时拉取数据中） -->
@@ -219,7 +218,7 @@
 
     <!-- 底部按钮 -->
     <template #footer>
-      <el-button :disabled="detailLoading" @click="emit('update:visible', false)">
+      <el-button :disabled="detailLoading" @click="modelVisible = false">
         取 消
       </el-button>
       <el-button
@@ -242,15 +241,16 @@ import PeriodSelect from '@/components/common/PeriodSelect.vue'
 import { getTaskDetail, createTask, updateTask } from '@/api/task'
 import { getStaffAll } from '@/api/staff'
 
+// ── v-model（与父级 v-model 对齐，不能用单独的 visible prop）──────────────────
+const modelVisible = defineModel({ type: Boolean, default: false })
+
 // ── Props / Emits ─────────────────────────────────────────────────────────────
 const props = defineProps({
-  /** 是否显示弹窗 */
-  visible: { type: Boolean, default: false },
   /** 编辑时传入任务 ID，新增时为 null */
-  taskId:  { type: Number,  default: null },
+  taskId: { type: Number, default: null },
 })
 
-const emit = defineEmits(['update:visible', 'success'])
+const emit = defineEmits(['success'])
 
 // ── 是否编辑模式 ──────────────────────────────────────────────────────────────
 const isEdit = computed(() => !!props.taskId)
@@ -272,7 +272,8 @@ const staffList = ref([])
 async function loadStaff() {
   try {
     const res = await getStaffAll()
-    staffList.value = res.data ?? []
+    const rows = res?.data
+    staffList.value = Array.isArray(rows) ? rows : []
   } catch {
     staffList.value = []
   }
@@ -356,7 +357,7 @@ async function loadTaskForEdit(id) {
     fillForm(res.data)
   } catch {
     ElMessage.error('任务信息加载失败')
-    emit('update:visible', false)
+    modelVisible.value = false
   } finally {
     detailLoading.value = false
   }
@@ -410,7 +411,7 @@ async function handleSubmit() {
     }
 
     emit('success')
-    emit('update:visible', false)
+    modelVisible.value = false
   } catch {
     // request.js 拦截器已统一弹出错误提示
   } finally {
@@ -425,24 +426,18 @@ function handleClosed() {
 }
 
 // ── 监听弹窗打开 ──────────────────────────────────────────────────────────────
-watch(
-  () => props.visible,
-  (open) => {
-    if (!open) return
+watch(modelVisible, (open) => {
+  if (!open) return
 
-    // 每次打开都确保人员列表已加载
-    if (!staffList.value.length) loadStaff()
+  // 每次打开都重新拉取在职人员，避免缓存空列表或数据过期
+  loadStaff()
 
-    if (props.taskId) {
-      // 编辑模式：拉取任务详情
-      loadTaskForEdit(props.taskId)
-    } else {
-      // 新增模式：重置表单
-      Object.assign(form, defaultForm())
-    }
-  },
-  { immediate: false },
-)
+  if (props.taskId) {
+    loadTaskForEdit(props.taskId)
+  } else {
+    Object.assign(form, defaultForm())
+  }
+})
 </script>
 
 <style lang="scss" scoped>
