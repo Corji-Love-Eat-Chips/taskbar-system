@@ -2,7 +2,7 @@
   "name": "taskbar-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "学院工作任务栏系统 · 后端 API",
+  "description": "工作计划管理平台 · 后端 API",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",

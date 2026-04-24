@@ -1,4 +1,4 @@
-# 学院工作任务栏系统 · 前端
+# 工作计划管理平台 · 前端
 
 Vue 3 + Vite + Element Plus + Vue Router + Pinia。
 

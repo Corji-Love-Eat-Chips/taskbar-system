@@ -2,4 +2,12 @@
   <router-view />
 </template>
 
-<script setup></script>
+<script setup>
+import { onMounted, onUnmounted } from 'vue'
+import { useReminder } from '@/composables/useReminder'
+
+const { start, stop } = useReminder()
+
+onMounted(start)
+onUnmounted(stop)
+</script>

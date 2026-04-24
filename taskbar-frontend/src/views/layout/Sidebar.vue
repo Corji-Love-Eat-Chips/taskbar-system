@@ -1,13 +1,13 @@
 <template>
-  <el-aside :width="collapsed ? '64px' : '200px'" class="sidebar">
+  <el-aside :width="collapsed ? '64px' : '220px'" class="sidebar">
 
     <!-- ── Logo 区 ────────────────────────────────────────────────────────── -->
     <div class="sidebar-logo" :class="{ 'sidebar-logo--collapsed': collapsed }">
       <transition name="logo-fade" mode="out-in">
         <span v-if="!collapsed" key="full" class="logo-full">
-          <span class="logo-dot">●</span> 任务栏系统
+          <span class="logo-dot">●</span> 工作计划管理平台
         </span>
-        <span v-else key="mini" class="logo-mini">T</span>
+        <span v-else key="mini" class="logo-mini">工</span>
       </transition>
     </div>
 
@@ -145,9 +145,9 @@ $footer-h:       48px;
   align-items: center;
   gap: 8px;
   color: #fff;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .logo-dot { color: $sb-active-bar; font-size: 10px; }

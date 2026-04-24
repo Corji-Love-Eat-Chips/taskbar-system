@@ -20,7 +20,33 @@
       <el-option disabled value="" label="暂无周期数据" />
     </template>
 
-    <!-- 按学期分组 -->
+    <!-- 已选学期：仅周次列表（不再重复分组标题） -->
+    <template v-else-if="semesterFilter">
+      <el-option
+        v-for="p in periods"
+        :key="p.period_id"
+        :value="p.period_id"
+        :label="p.period_name"
+      >
+        <div class="period-option">
+          <span class="period-name">
+            <el-tag
+              v-if="p.period_id === currentPeriodId"
+              size="small"
+              type="success"
+              effect="light"
+              class="current-tag"
+            >当前</el-tag>
+            {{ p.period_name }}
+          </span>
+          <span class="period-date">
+            {{ p.start_date }} ~ {{ p.end_date }}
+          </span>
+        </div>
+      </el-option>
+    </template>
+
+    <!-- 未选学期：按学期分组 -->
     <template v-else>
       <el-option-group
         v-for="group in grouped"
@@ -89,6 +115,13 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  /**
+   * 按学期筛选周次（与「全部学期」互斥：空字符串表示不过滤，下拉仍按学期分组）
+   */
+  semesterFilter: {
+    type: String,
+    default: '',
+  },
 })
 
 // ── Emits ─────────────────────────────────────────────────────────────────────
@@ -151,7 +184,8 @@ const grouped = computed(() => {
 async function loadPeriods() {
   loading.value = true
   try {
-    const res = await getPeriodList()
+    const params = props.semesterFilter ? { semester: props.semesterFilter } : {}
+    const res = await getPeriodList(params)
     periods.value = res.data ?? []
   } catch {
     periods.value = []
@@ -159,6 +193,23 @@ async function loadPeriods() {
     loading.value = false
   }
 }
+
+/** 学期筛选变化：重载周次并校正 / 自动选中当前周 */
+watch(
+  () => props.semesterFilter,
+  async () => {
+    await loadPeriods()
+    const ids = new Set(periods.value.map(p => p.period_id))
+    const prev = props.modelValue
+    let next = prev
+    if (next != null && !ids.has(next)) next = null
+    if (next == null && props.autoSelectCurrent) next = currentPeriodId.value
+    if (next !== prev) {
+      emit('update:modelValue', next)
+      emit('change', next, findPeriod(next))
+    }
+  },
+)
 
 // ── 自动选中当前周期 ──────────────────────────────────────────────────────────
 /**

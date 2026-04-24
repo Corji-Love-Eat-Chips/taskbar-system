@@ -32,8 +32,8 @@ export const useAppStore = defineStore('app', () => {
   function setPageTitle(title) {
     pageTitle.value = title
     document.title = title
-      ? `${title} - 学院工作任务栏系统`
-      : '学院工作任务栏系统'
+      ? `${title} - 工作计划管理平台`
+      : '工作计划管理平台'
   }
 
   return {

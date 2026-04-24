@@ -67,10 +67,10 @@ const server = app.listen(PORT, async () => {
   await db.testConnection()
 })
 
-// ─── 会议提醒等定时任务（启用后取消注释）────────────────────────────────────
-// if (process.env.ENABLE_CRON === 'true') {
-//   const cron = require('node-cron')
-//   cron.schedule('*/5 * * * *', () => { /* 扫描待提醒会议 */ })
-// }
+// ─── 会议提醒定时任务 ─────────────────────────────────────────────────────────
+const { startReminderCron } = require('./services/reminderService')
+startReminderCron().catch(err =>
+  console.error('[reminder] 启动失败:', err.message),
+)
 
 module.exports = { app, server }

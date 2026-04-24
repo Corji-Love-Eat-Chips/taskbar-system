@@ -8,6 +8,10 @@ const staffRoutes   = require('./staff')
 const userRoutes    = require('./users')
 const periodRoutes  = require('./periods')
 const taskRoutes    = require('./tasks')
+const todoRoutes    = require('./todos')
+const meetingRoutes   = require('./meetings')
+const reminderRoutes  = require('./reminders')
+const dashboardRoutes = require('./dashboard')
 
 const router = Router()
 
@@ -34,6 +38,10 @@ router.use('/auth',    authRoutes)
 router.use('/staff',   staffRoutes)
 router.use('/users',   userRoutes)
 router.use('/periods', periodRoutes)
-router.use('/tasks',   taskRoutes)
+router.use('/tasks',    taskRoutes)
+router.use('/todos',    todoRoutes)
+router.use('/meetings',  meetingRoutes)
+router.use('/reminders', reminderRoutes)
+router.use('/dashboard', dashboardRoutes)
 
 module.exports = router

@@ -1,5 +1,6 @@
 {
   "name": "taskbar-frontend",
+  "description": "工作计划管理平台 · 前端",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -23,6 +24,7 @@
     "pinia": "^3.0.4",
     "vue": "^3.5.32",
     "vue-router": "^4.6.4",
+    "vuedraggable": "^4.1.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

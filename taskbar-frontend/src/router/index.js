@@ -111,8 +111,8 @@ router.beforeEach(async (to) => {
 router.afterEach((to) => {
   const title = to.meta?.title
   document.title = title
-    ? `${title} - 学院工作任务栏系统`
-    : '学院工作任务栏系统'
+    ? `${title} - 工作计划管理平台`
+    : '工作计划管理平台'
 })
 
 export default router

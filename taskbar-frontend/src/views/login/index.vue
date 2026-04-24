@@ -14,8 +14,8 @@
         <div class="brand-icon-wrap">
           <el-icon :size="56" color="#fff"><Grid /></el-icon>
         </div>
-        <h1 class="brand-title">学院工作任务栏系统</h1>
-        <p class="brand-subtitle">College Work Taskbar System</p>
+        <h1 class="brand-title">工作计划管理平台</h1>
+        <p class="brand-subtitle">Work Plan Management Platform</p>
         <ul class="brand-features">
           <li><el-icon><CircleCheck /></el-icon> 任务全流程跟踪管理</li>
           <li><el-icon><CircleCheck /></el-icon> 会议安排与提醒通知</li>
@@ -106,7 +106,7 @@
         </el-form>
 
         <!-- 卡片底部版权 -->
-        <p class="card-footer">© 2025 学院工作任务栏系统</p>
+        <p class="card-footer">© 2026 工作计划管理平台</p>
       </div>
     </div>
   </div>
