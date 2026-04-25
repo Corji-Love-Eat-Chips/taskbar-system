@@ -10,7 +10,9 @@
     "test": "jest --passWithNoTests",
     "db:init": "node scripts/init-db.js",
     "db:init:legacy": "node scripts/init-db.js init.sql",
-    "db:seed": "node scripts/init-db.js seed_initial_data.sql"
+    "db:seed": "node scripts/init-db.js seed_initial_data.sql",
+    "db:cleanup-users": "node scripts/cleanup-users-keep-admin.js",
+    "db:cleanup-staff": "node scripts/cleanup-staff-keep-admin.js"
   },
   "engines": {
     "node": ">=18.0.0"
