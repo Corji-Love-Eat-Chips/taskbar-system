@@ -41,6 +41,12 @@
         <el-button :loading="loading" circle @click="loadStaff">
           <el-icon><Refresh /></el-icon>
         </el-button>
+        <el-button
+          v-if="userStore.isAdmin"
+          @click="downloadStaffImportTemplate"
+        >
+          <el-icon><Download /></el-icon> 下载空模板
+        </el-button>
         <el-upload
           v-if="userStore.isAdmin"
           :show-file-list="false"
@@ -251,13 +257,14 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, OfficeBuilding, Refresh, Plus, Upload, CircleCheckFilled } from '@element-plus/icons-vue'
+import { Search, OfficeBuilding, Refresh, Plus, Upload, Download, CircleCheckFilled } from '@element-plus/icons-vue'
 import { useDebounceFn } from '@vueuse/core'
 import {
   getStaffList, createStaff, updateStaff, deleteStaff, createUserForStaff, importStaff,
 } from '@/api/staff'
 import { resetPassword } from '@/api/user'
 import { useUserStore } from '@/store/user'
+import { downloadStaffImportTemplate } from '@/utils/importTemplates'
 
 const userStore = useUserStore()
 

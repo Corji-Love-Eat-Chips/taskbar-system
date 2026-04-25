@@ -99,6 +99,12 @@
         <el-button @click="handleRefresh">
           <el-icon><Refresh /></el-icon>
         </el-button>
+        <el-button
+          v-if="userStore.isAdmin || userStore.isLeader"
+          @click="downloadTaskImportTemplate"
+        >
+          <el-icon><Download /></el-icon> 下载空模板
+        </el-button>
         <el-upload
           v-if="userStore.isAdmin || userStore.isLeader"
           :show-file-list="false"
@@ -273,7 +279,7 @@
 <script setup>
 import { ref, reactive, watch, onMounted } from 'vue'
 import {
-  Search, Refresh, Plus, Upload, Warning,
+  Search, Refresh, Plus, Upload, Download, Warning,
   CircleCloseFilled,
 } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
@@ -286,6 +292,7 @@ import { useUserStore } from '@/store/user'
 import PeriodSelect    from '@/components/common/PeriodSelect.vue'
 import TaskDetailDrawer from '@/components/task/TaskDetailDrawer.vue'
 import TaskFormDialog   from '@/components/task/TaskFormDialog.vue'
+import { downloadTaskImportTemplate } from '@/utils/importTemplates'
 
 const userStore = useUserStore()
 

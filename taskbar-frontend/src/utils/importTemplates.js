@@ -1,0 +1,39 @@
+/**
+ * 生成并下载批量导入用空 Excel 模板（表头与后端解析一致）
+ */
+import * as XLSX from 'xlsx'
+import { saveAs } from 'file-saver'
+
+const STAFF_HEADERS = ['工号', '姓名', '性别', '部门', '职位', '联系方式']
+
+const TASK_HEADERS = [
+  '任务名称',
+  '负责人工号',
+  '周期名称',
+  '任务分类',
+  '开始日期',
+  '截止日期',
+  '优先级',
+  '任务描述',
+  '协助人工号',
+  '备注',
+]
+
+function downloadSheet(headers, sheetName, fileName) {
+  const ws = XLSX.utils.aoa_to_sheet([headers])
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, sheetName)
+  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+  saveAs(
+    new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    fileName,
+  )
+}
+
+export function downloadStaffImportTemplate() {
+  downloadSheet(STAFF_HEADERS, '人员导入', '人员批量导入模板.xlsx')
+}
+
+export function downloadTaskImportTemplate() {
+  downloadSheet(TASK_HEADERS, '任务导入', '任务批量导入模板.xlsx')
+}
