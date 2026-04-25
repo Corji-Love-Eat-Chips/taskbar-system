@@ -1,0 +1,11 @@
+# 依赖（各子项目统一忽略，避免误提交数千文件）
+node_modules/
+
+# 本地环境（含密钥，勿提交）
+.env
+.env.*
+!.env.example
+
+# 构建与上传目录
+dist/
+taskbar-backend/uploads/

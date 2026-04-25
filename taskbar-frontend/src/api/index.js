@@ -54,6 +54,10 @@ export {
   getTaskCollaborators,
   addTaskCollaborator,
   removeTaskCollaborator,
+  getTaskFiles,
+  uploadTaskFile,
+  deleteTaskFile,
+  downloadTaskFileBlob,
 } from './task'
 
 // ── 会议管理 ──────────────────────────────────────────────────────────────

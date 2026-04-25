@@ -358,6 +358,9 @@ async function deleteTask(id) {
     throw createError(`该任务下有 ${cnt} 条未完成待办，请先处理后再删除`, 400)
   }
 
+  const taskFileService = require('./taskFileService')
+  await taskFileService.purgeTaskFileStorageForTask(id)
+
   await pool.query('DELETE FROM tasks WHERE task_id = ?', [id])
 }
 

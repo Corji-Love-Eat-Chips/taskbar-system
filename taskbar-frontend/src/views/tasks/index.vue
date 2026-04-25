@@ -221,10 +221,14 @@
         </el-table-column>
 
         <!-- 操作 -->
-        <el-table-column label="操作" width="140" align="center" fixed="right">
+        <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="{ row }">
             <!-- 管理员 / 领导 -->
             <template v-if="userStore.isAdmin || userStore.isLeader">
+              <el-button link type="primary" size="small" @click="handleViewDetail(row)">
+                详情
+              </el-button>
+              <span class="op-dot" aria-hidden="true">·</span>
               <el-button link type="primary" size="small" @click="handleEdit(row)">
                 编辑
               </el-button>
@@ -682,6 +686,13 @@ loadTasks()
     text-align: right;
     flex-shrink: 0;
   }
+}
+
+.op-dot {
+  color: $text-secondary;
+  user-select: none;
+  padding: 0 1px;
+  font-size: 12px;
 }
 
 // ── 分类标签 ──────────────────────────────────────────────────────────────────

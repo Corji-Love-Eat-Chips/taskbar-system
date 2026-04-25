@@ -214,6 +214,14 @@
       </el-form-item>
     </el-form>
 
+    <!-- 编辑任务时：与列表/详情中一致，可管理本任务附件 -->
+    <div v-if="isEdit && taskId && !detailLoading" class="task-files-outer">
+      <TaskFilesPanel
+        :task-id="taskId"
+        :can-manage="canManageTaskFiles"
+      />
+    </div>
+
     <!-- 底部按钮 -->
     <template #footer>
       <el-button :disabled="detailLoading" @click="modelVisible = false">
@@ -238,6 +246,8 @@ import { CaretTop, Minus, CaretBottom } from '@element-plus/icons-vue'
 import PeriodSelect from '@/components/common/PeriodSelect.vue'
 import { getTaskDetail, createTask, updateTask } from '@/api/task'
 import { getStaffAll } from '@/api/staff'
+import { useUserStore } from '@/store/user'
+import TaskFilesPanel from '@/components/task/TaskFilesPanel.vue'
 
 // ── v-model（与父级 v-model 对齐，不能用单独的 visible prop）──────────────────
 const modelVisible = defineModel({ type: Boolean, default: false })
@@ -249,6 +259,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['success'])
+
+const userStore = useUserStore()
 
 // ── 是否编辑模式 ──────────────────────────────────────────────────────────────
 const isEdit = computed(() => !!props.taskId)
@@ -305,6 +317,19 @@ function defaultForm() {
 }
 
 const form = reactive(defaultForm())
+
+/** 与任务详情抽屉一致：管理员/领导/负责人/协助人可上传、删除 */
+const canManageTaskFiles = computed(() => {
+  if (!isEdit.value) return false
+  if (userStore.isAdmin || userStore.isLeader) return true
+  if (userStore.role === 'teacher') {
+    const sid = userStore.staffId
+    if (sid == null) return false
+    if (form.owner_id === sid) return true
+    return (form.collaborator_ids || []).includes(sid)
+  }
+  return false
+})
 
 // ── 表单校验规则 ──────────────────────────────────────────────────────────────
 const rules = {
@@ -500,6 +525,15 @@ watch(modelVisible, (open) => {
 }
 
 .form-loading { padding: 8px 0 4px; }
+
+/* 编辑弹窗内附件区 */
+.task-files-outer {
+  margin-top: 8px;
+  padding: 4px 0 8px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+  max-height: min(50vh, 400px);
+  overflow-y: auto;
+}
 
 // ── 选项布局 ──────────────────────────────────────────────────────────────────
 .opt-name {

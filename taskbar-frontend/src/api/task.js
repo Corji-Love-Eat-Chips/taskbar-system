@@ -140,3 +140,41 @@ export function addTaskCollaborator(id, data) {
 export function removeTaskCollaborator(id, staffId) {
   return request.delete(`/tasks/${id}/collaborators/${staffId}`)
 }
+
+// ── 任务附件 ───────────────────────────────────────────────────────────────
+
+/**
+ * 任务下的文件列表
+ * @param {number} taskId
+ */
+export function getTaskFiles(taskId) {
+  return request.get(`/tasks/${taskId}/files`)
+}
+
+/**
+ * 上传任务附件（单文件，字段名 file）
+ * @param {number} taskId
+ * @param {File} file
+ */
+export function uploadTaskFile(taskId, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post(`/tasks/${taskId}/files`, formData, { timeout: 120000 })
+}
+
+/**
+ * 删除任务附件
+ */
+export function deleteTaskFile(taskId, fileId) {
+  return request.delete(`/tasks/${taskId}/files/${fileId}`)
+}
+
+/**
+ * 下载为 Blob（用于浏览器另存，文件名请使用列表项中的 original_name）
+ */
+export function downloadTaskFileBlob(taskId, fileId) {
+  return request.get(`/tasks/${taskId}/files/${fileId}/download`, {
+    responseType: 'blob',
+    timeout: 120000,
+  })
+}

@@ -1,7 +1,4 @@
 node_modules/
-coverage/
-*.log
-.DS_Store
+uploads/
 .env
-.env.local
-.env.*.local
+.env.*

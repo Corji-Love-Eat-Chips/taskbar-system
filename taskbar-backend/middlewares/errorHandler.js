@@ -5,6 +5,17 @@ const { ValidationError } = require('express-validator')
  */
 // eslint-disable-next-line no-unused-vars
 function errorHandler(err, req, res, next) {
+  if (res.headersSent) {
+    return next(err)
+  }
+
+  if (err.name === 'MulterError' && err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ code: 400, message: '文件超过大小限制（单文件最大 20MB）' })
+  }
+  if (err.message && /不支持的文件类型/.test(err.message)) {
+    return res.status(400).json({ code: 400, message: err.message })
+  }
+
   // express-validator 的校验错误集合（通过 createError 抛出时会挂 errors 数组）
   if (err.isValidationError && Array.isArray(err.errors)) {
     return res.status(422).json({

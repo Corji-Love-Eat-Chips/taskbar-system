@@ -6,9 +6,12 @@
 const { Router } = require('express')
 const { body, param, query } = require('express-validator')
 const ctrl = require('../controllers/taskController')
+const taskFileCtrl = require('../controllers/taskFileController')
 const { requireAuth, requireAdmin, requireAdminOrLeader } = require('../middlewares/auth')
+const { requireTaskFileAccess } = require('../middlewares/taskFileAccess')
 const { asyncHandler } = require('../utils/asyncHandler')
 const { uploadExcel } = require('../middlewares/uploadExcel')
+const { uploadTaskFile } = require('../middlewares/uploadTaskFile')
 
 const router = Router()
 
@@ -19,6 +22,9 @@ router.use(requireAuth)
 
 const validateId = param('id')
   .isInt({ min: 1 }).withMessage('任务ID必须为正整数')
+
+const validateFileId = param('fileId')
+  .isInt({ min: 1 }).withMessage('文件ID必须为正整数')
 
 const validateStaffId = param('staffId')
   .isInt({ min: 1 }).withMessage('人员ID必须为正整数')
@@ -56,6 +62,33 @@ router.post(
   requireAdminOrLeader,
   uploadExcel.single('file'),
   asyncHandler(ctrl.importExcel),
+)
+
+// ─── 任务附件 /api/tasks/:id/files（须在 GET /:id 之前）────────────────────────
+router.get(
+  '/:id/files',
+  [validateId],
+  requireTaskFileAccess,
+  asyncHandler(taskFileCtrl.list),
+)
+router.post(
+  '/:id/files',
+  [validateId],
+  requireTaskFileAccess,
+  uploadTaskFile.single('file'),
+  asyncHandler(taskFileCtrl.upload),
+)
+router.get(
+  '/:id/files/:fileId/download',
+  [validateId, validateFileId],
+  requireTaskFileAccess,
+  asyncHandler(taskFileCtrl.download),
+)
+router.delete(
+  '/:id/files/:fileId',
+  [validateId, validateFileId],
+  requireTaskFileAccess,
+  asyncHandler(taskFileCtrl.remove),
 )
 
 // ─── GET /api/tasks/:id ───────────────────────────────────────────────────────

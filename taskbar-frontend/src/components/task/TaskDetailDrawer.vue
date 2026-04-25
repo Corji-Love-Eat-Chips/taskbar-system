@@ -57,6 +57,14 @@
         </el-descriptions>
       </section>
 
+      <!-- 相关文件（紧接基本信息，便于发现） -->
+      <section class="detail-section">
+        <TaskFilesPanel
+          :task-id="task.task_id"
+          :can-manage="canManageTaskFiles"
+        />
+      </section>
+
       <!-- 进度 -->
       <section class="detail-section">
         <div class="section-title">完成进度</div>
@@ -143,6 +151,7 @@ import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
 import { getTaskDetail, updateTaskProgress } from '@/api/task'
 import { useUserStore } from '@/store/user'
+import TaskFilesPanel from './TaskFilesPanel.vue'
 
 // ── Props / Emits ─────────────────────────────────────────────────────────────
 const props = defineProps({
@@ -222,6 +231,19 @@ const canEdit = computed(() => userStore.isAdmin || userStore.isLeader)
 const canUpdateProgress = computed(() => {
   if (!task.value) return false
   if (userStore.isAdmin) return true
+  if (userStore.role === 'teacher') {
+    const sid = userStore.staffId
+    const isOwner  = task.value.owner_id === sid
+    const isCollab = task.value.collaborators?.some(c => c.staff_id === sid)
+    return isOwner || isCollab
+  }
+  return false
+})
+
+/** 任务附件：管理员/领导/负责人/协助人可上传、删除；全员可读见下方列表（由接口按任务可见性限制） */
+const canManageTaskFiles = computed(() => {
+  if (!task.value) return false
+  if (userStore.isAdmin || userStore.isLeader) return true
   if (userStore.role === 'teacher') {
     const sid = userStore.staffId
     const isOwner  = task.value.owner_id === sid
