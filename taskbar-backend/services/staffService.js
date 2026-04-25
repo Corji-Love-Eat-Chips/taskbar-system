@@ -2,7 +2,7 @@ const pool = require('../config/database')
 const { createError } = require('../utils/response')
 const {
   sheetToRecords,
-  parseContact,
+  parseStaffImportContact,
   normalizeGender,
 } = require('../utils/excelImport')
 
@@ -244,7 +244,7 @@ async function importStaffFromExcelBuffer(buffer) {
     const positionRaw = String(r['职位'] ?? '').trim()
     const position = positionRaw || null
     const genderVal = normalizeGender(r['性别'])
-    const contact = parseContact(r['联系方式'])
+    const contact = parseStaffImportContact(r)
 
     if (!staffCode) errors.push({ row: excelRow, message: '工号不能为空' })
     else if (staffCode.length > 20) errors.push({ row: excelRow, message: '工号最长 20 字符' })

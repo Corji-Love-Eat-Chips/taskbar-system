@@ -4,7 +4,8 @@
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 
-const STAFF_HEADERS = ['工号', '姓名', '性别', '部门', '职位', '联系方式']
+// 与后端 staffService.importStaffFromExcelBuffer 一致：支持「手机」「邮箱」分列，也兼容仅填「联系方式」
+const STAFF_HEADERS = ['工号', '姓名', '性别', '部门', '职位', '手机', '邮箱', '状态']
 
 const TASK_HEADERS = [
   '任务名称',

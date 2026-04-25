@@ -94,6 +94,69 @@ function parseContact(raw) {
   return { phone, email, error: null }
 }
 
+const STAFF_PHONE_HEADER_KEYS = ['手机', '电话', '手机号', '移动电话']
+const STAFF_EMAIL_HEADER_KEYS = ['邮箱', '电子邮件', 'email', 'Email']
+
+/**
+ * 将单元格值转为可校验的字符串（处理 Excel 将手机号存为 number）
+ * @param {unknown} v
+ * @returns {string}
+ */
+function cellToDisplayString(v) {
+  if (v == null || v === '') return ''
+  if (typeof v === 'number' && Number.isFinite(v)) {
+    if (Math.abs(v) >= 1e9 && Math.abs(v) < 1e12) return String(Math.round(v))
+    return String(v)
+  }
+  let s = String(v).trim()
+  if (/^\d+\.0$/.test(s)) s = s.slice(0, -2)
+  return s
+}
+
+/**
+ * 人员导入：支持「联系方式」单列，或「手机」+「邮箱」两列（与常见模板/用户表一致）
+ * @param {Record<string, unknown>} row
+ * @returns {{ phone: string|null, email: string|null, error: string|null }}
+ */
+function parseStaffImportContact(row) {
+  const r = row && typeof row === 'object' ? row : {}
+  let phoneRaw
+  for (const k of STAFF_PHONE_HEADER_KEYS) {
+    if (k in r && r[k] !== undefined && r[k] !== null && String(r[k]).trim() !== '') {
+      phoneRaw = r[k]
+      break
+    }
+  }
+  let emailRaw
+  for (const k of STAFF_EMAIL_HEADER_KEYS) {
+    if (k in r && r[k] !== undefined && r[k] !== null && String(r[k]).trim() !== '') {
+      emailRaw = r[k]
+      break
+    }
+  }
+  const hasSplit = phoneRaw !== undefined || emailRaw !== undefined
+  if (hasSplit) {
+    const emailStr = emailRaw !== undefined ? cellToDisplayString(emailRaw) : ''
+    const phoneStr = phoneRaw !== undefined ? cellToDisplayString(phoneRaw).replace(/\s/g, '') : ''
+    let phone = null
+    if (phoneStr) {
+      if (!CN_PHONE.test(phoneStr)) {
+        return { phone: null, email: null, error: `手机号格式不正确：${phoneStr}（需大陆 11 位手机号）` }
+      }
+      phone = phoneStr
+    }
+    let email = null
+    if (emailStr) {
+      if (!EMAIL_RE.test(emailStr)) {
+        return { phone: null, email: null, error: `邮箱格式不正确：${emailStr}` }
+      }
+      email = emailStr
+    }
+    return { phone, email, error: null }
+  }
+  return parseContact(r['联系方式'])
+}
+
 function normalizeGender(raw) {
   const s = String(raw ?? '').trim().toLowerCase()
   if (!s) return null
@@ -121,6 +184,7 @@ module.exports = {
   sheetToRecords,
   cellToYMD,
   parseContact,
+  parseStaffImportContact,
   normalizeGender,
   normalizePriority,
   splitStaffCodes,
