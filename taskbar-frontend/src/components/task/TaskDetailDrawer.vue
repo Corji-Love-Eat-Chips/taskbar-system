@@ -1,15 +1,19 @@
 <template>
-  <el-drawer
+  <el-dialog
     v-model="visible"
-    size="520px"
+    class="task-detail-dialog"
+    width="92%"
+    top="4vh"
+    align-center
     destroy-on-close
-    class="task-detail-drawer"
+    :close-on-click-modal="false"
+    append-to-body
     @closed="emit('update:modelValue', false)"
   >
     <!-- 自定义标题 -->
     <template #header>
-      <div class="drawer-header">
-        <span class="drawer-title">{{ task?.task_name || '任务详情' }}</span>
+      <div class="dialog-header">
+        <span class="dialog-title">{{ task?.task_name || '任务详情' }}</span>
         <div v-if="task" class="header-tags">
           <el-tag :type="STATUS_MAP[task.status]?.type ?? 'info'" size="small" effect="light">
             {{ STATUS_MAP[task.status]?.text ?? task.status }}
@@ -19,12 +23,12 @@
     </template>
 
     <!-- 加载骨架 -->
-    <div v-if="loading" class="drawer-body">
+    <div v-if="loading" class="dialog-body">
       <el-skeleton :rows="10" animated />
     </div>
 
     <!-- 内容 -->
-    <div v-else-if="task" class="drawer-body">
+    <div v-else-if="task" class="dialog-body">
 
       <!-- 基本信息 -->
       <section class="detail-section">
@@ -141,7 +145,7 @@
         <el-icon><Edit /></el-icon> 编辑任务
       </el-button>
     </template>
-  </el-drawer>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -303,20 +307,49 @@ watch(
 </script>
 
 <style lang="scss" scoped>
-// ── 抽屉覆盖 ──────────────────────────────────────────────────────────────────
-:deep(.el-drawer__header) { margin-bottom: 0; padding: 16px 20px; border-bottom: 1px solid $border-light; }
-:deep(.el-drawer__body)   { padding: 0; overflow-y: auto; }
-:deep(.el-drawer__footer) { padding: 12px 20px; border-top: 1px solid $border-light; text-align: right; }
+// ── 居中弹窗：宽屏展示，避免侧栏过窄 ───────────────────────────────────────────
+:deep(.task-detail-dialog.el-dialog) {
+  max-width: min(1100px, 96vw);
+  display: flex;
+  flex-direction: column;
+  margin: 4vh auto !important;
+  max-height: 92vh;
+}
+
+:deep(.task-detail-dialog .el-dialog__header) {
+  margin: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid $border-light;
+  flex-shrink: 0;
+}
+
+:deep(.task-detail-dialog .el-dialog__body) {
+  padding: 0;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.task-detail-dialog .el-dialog__footer) {
+  padding: 12px 20px;
+  border-top: 1px solid $border-light;
+  text-align: right;
+  flex-shrink: 0;
+}
 
 // ── 标题区 ────────────────────────────────────────────────────────────────────
-.drawer-header {
+.dialog-header {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  width: 100%;
+  padding-right: 28px;
 
-  .drawer-title {
-    font-size: 16px;
+  .dialog-title {
+    font-size: 17px;
     font-weight: 600;
     color: $text-primary;
     line-height: 1.4;
@@ -331,12 +364,14 @@ watch(
   }
 }
 
-// ── 主体 ──────────────────────────────────────────────────────────────────────
-.drawer-body {
+// ── 主体（可滚动）──────────────────────────────────────────────────────────
+.dialog-body {
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow-y: auto;
+  max-height: min(78vh, 900px);
 }
 
 // ── 分区 ──────────────────────────────────────────────────────────────────────

@@ -22,55 +22,40 @@
       description="暂无文件"
       :image-size="64"
     />
-    <el-table
-      v-else
-      :data="list"
-      size="small"
-      border
-      class="file-table"
-    >
-      <el-table-column prop="original_name" label="名称" min-width="160" show-overflow-tooltip />
-      <el-table-column label="大小" width="100">
-        <template #default="{ row }">
-          {{ formatSize(row.size_bytes) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="uploader_name" label="上传人" width="100" show-overflow-tooltip>
-        <template #default="{ row }">
-          {{ row.uploader_name || '—' }}
-        </template>
-      </el-table-column>
-      <el-table-column label="时间" width="150">
-        <template #default="{ row }">
-          {{ fmtDt(row.created_at) }}
-        </template>
-      </el-table-column>
-      <el-table-column v-if="canManage" label="操作" width="100" align="right">
-        <template #default="{ row }">
+    <!-- 卡片行：右侧固定操作，无需横向滚动即可点「下载」 -->
+    <ul v-else class="file-list">
+      <li v-for="row in list" :key="row.file_id" class="file-row">
+        <div class="file-info">
+          <div class="file-name" :title="row.original_name">{{ row.original_name }}</div>
+          <div class="file-meta">
+            <span>{{ formatSize(row.size_bytes) }}</span>
+            <span class="dot">·</span>
+            <span>{{ fmtDt(row.created_at) }}</span>
+            <span class="dot">·</span>
+            <span>{{ row.uploader_name || '—' }}</span>
+          </div>
+        </div>
+        <div class="file-actions">
           <el-button
             type="primary"
-            link
+            size="small"
             :loading="downloadingId === row.file_id"
             @click="onDownload(row)"
           >
             下载
           </el-button>
-          <el-button type="danger" link @click="onDelete(row)">删除</el-button>
-        </template>
-      </el-table-column>
-      <el-table-column v-else label="操作" width="80" align="right">
-        <template #default="{ row }">
           <el-button
-            type="primary"
-            link
-            :loading="downloadingId === row.file_id"
-            @click="onDownload(row)"
+            v-if="canManage"
+            type="danger"
+            size="small"
+            plain
+            @click="onDelete(row)"
           >
-            下载
+            删除
           </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+        </div>
+      </li>
+    </ul>
   </section>
 </template>
 
@@ -218,9 +203,70 @@ watch(
   }
 }
 
-.file-table {
-  :deep(.el-button + .el-button) {
-    margin-left: 2px;
+.file-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--el-bg-color);
+}
+
+.file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  min-width: 0;
+
+  &:last-child {
+    border-bottom: none;
   }
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    align-items: stretch;
+
+    .file-actions {
+      justify-content: flex-end;
+    }
+  }
+}
+
+.file-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.file-name {
+  font-size: 14px;
+  color: $text-primary;
+  line-height: 1.4;
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.file-meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: $text-secondary;
+
+  .dot {
+    margin: 0 4px;
+    opacity: 0.6;
+  }
+}
+
+.file-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
 }
 </style>

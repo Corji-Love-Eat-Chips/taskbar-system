@@ -6,10 +6,26 @@ const { success, fail, created } = require('../utils/response')
 const { asyncHandler } = require('../utils/asyncHandler')
 const { recordFile, listFiles, getFileRecord, deleteFile } = require('../services/taskFileService')
 
+const CJK = /[\u4e00-\u9fff]/
+
+/**
+ * 处理 multipart 文件名：部分环境下 Multer 将 UTF-8 字节误作 latin1，显示成「ç...ª」。
+ * 若字符串本身已含正常汉字，则不再二次转码，避免破坏正确 UTF-8。
+ */
 function safeOriginalName(name) {
-  const base = path.basename(String(name || 'file'))
-  const s = base.replace(/[\\/]/g, '').trim()
-  return s.slice(0, 255) || 'file'
+  let s = String(name || '')
+  if (!s) return 'file'
+  if (!CJK.test(s)) {
+    try {
+      const decoded = Buffer.from(s, 'latin1').toString('utf8')
+      if (CJK.test(decoded) && !/�/.test(decoded)) s = decoded
+    } catch {
+      // keep s
+    }
+  }
+  const base = path.basename(s.replace(/\\/g, '/'))
+  const cleaned = base.replace(/[\\/]/g, '').trim()
+  return cleaned.slice(0, 255) || 'file'
 }
 
 const list = asyncHandler(async (req, res) => {
