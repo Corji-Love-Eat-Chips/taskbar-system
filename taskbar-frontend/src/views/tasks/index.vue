@@ -26,7 +26,7 @@
           :semester-filter="filters.semester || ''"
           placeholder="全部周期"
           :clearable="true"
-          :auto-select-current="true"
+          :auto-select-current="false"
           class="filter-item filter-period"
         />
 
@@ -98,6 +98,9 @@
       <div class="toolbar-actions">
         <el-button @click="handleRefresh">
           <el-icon><Refresh /></el-icon>
+        </el-button>
+        <el-button :loading="exportPdfLoading" @click="handleExportPdf">
+          <el-icon><Document /></el-icon> 导出 PDF
         </el-button>
         <el-button
           v-if="userStore.isAdmin || userStore.isLeader"
@@ -284,7 +287,7 @@
 import { ref, reactive, watch, onMounted } from 'vue'
 import {
   Search, Refresh, Plus, Upload, Download, Warning,
-  CircleCloseFilled,
+  CircleCloseFilled, Document,
 } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useDebounceFn } from '@vueuse/core'
@@ -297,6 +300,7 @@ import PeriodSelect    from '@/components/common/PeriodSelect.vue'
 import TaskDetailDrawer from '@/components/task/TaskDetailDrawer.vue'
 import TaskFormDialog   from '@/components/task/TaskFormDialog.vue'
 import { downloadTaskImportTemplate } from '@/utils/importTemplates'
+import { exportTaskListPdf } from '@/utils/exportTaskListPdf'
 
 const userStore = useUserStore()
 
@@ -347,6 +351,8 @@ const filters = reactive({
 })
 
 const staffOptions = ref([])
+
+const exportPdfLoading = ref(false)
 
 async function loadStaffOptions() {
   try {
@@ -482,6 +488,38 @@ function handleRefresh() {
   loadTasks()
 }
 
+async function handleExportPdf() {
+  if (!taskList.value.length) {
+    ElMessage.warning('当前页没有任务，无法导出')
+    return
+  }
+  exportPdfLoading.value = true
+  try {
+    const total = pagination.total
+    const size = pagination.pageSize || 20
+    const totalPages = Math.max(1, Math.ceil(total / size) || 1)
+    await exportTaskListPdf({
+      tasks: taskList.value,
+      meta: {
+        exportedAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+        page: pagination.page,
+        totalPages,
+        pageRows: taskList.value.length,
+        totalRows: total,
+      },
+      statusMap: STATUS_MAP,
+      priorityMap: PRIORITY_MAP,
+      filename: `任务列表_第${pagination.page}页_${dayjs().format('YYYYMMDD_HHmmss')}.pdf`,
+    })
+    ElMessage.success('PDF 已开始下载')
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('导出失败，请稍后重试')
+  } finally {
+    exportPdfLoading.value = false
+  }
+}
+
 function showTaskImportErrors(err) {
   const d = err?.response?.data
   const list = d?.data?.errors
@@ -569,7 +607,7 @@ async function handleDelete(row) {
   }
 }
 
-// 首次进入：period_id 由 PeriodSelect 异步写入后会触发上方 watch
+// 首次进入：周期默认不自动选中，直接按当前筛选加载
 loadTasks()
 </script>
 

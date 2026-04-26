@@ -7,6 +7,10 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
 // https://vite.dev/config/
 export default defineConfig({
+  optimizeDeps: {
+    // 避免新增/升级依赖后出现 504 Outdated Optimize Dep，并稳定预构建
+    include: ['html2canvas', 'jspdf'],
+  },
   plugins: [
     vue(),
     AutoImport({
