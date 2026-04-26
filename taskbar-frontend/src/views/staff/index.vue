@@ -467,9 +467,10 @@ onMounted(loadStaff)
   align-items: center;
   justify-content: space-between;
   background: $bg-card;
-  padding: 12px 16px;
-  border-radius: 10px;
+  padding: 14px 18px;
+  border-radius: $radius-md;
   border: 1px solid $border-light;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
   flex-wrap: wrap;
   gap: 10px;
 }
@@ -477,7 +478,7 @@ onMounted(loadStaff)
 .filters, .toolbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 .table-card {
-  border-radius: 10px;
+  border-radius: $radius-md;
   :deep(.el-card__body) { padding: 0; }
 }
 

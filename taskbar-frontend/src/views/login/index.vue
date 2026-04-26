@@ -211,7 +211,7 @@ import { nextTick } from 'vue'
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #5b8def 0%, #722ed1 100%);
+  background: linear-gradient(145deg, $brand-sidebar 0%, #1e4974 38%, $brand-accent 100%);
   overflow: hidden;
   padding: 60px 48px;
 
@@ -307,26 +307,27 @@ import { nextTick } from 'vue'
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f7fa;
+  background: $bg-page;
   padding: 40px 24px;
 
   // 小屏时撑满全宽
   @media (max-width: 900px) {
     width: 100%;
-    background: linear-gradient(145deg, #5b8def 0%, #722ed1 100%);
+    background: linear-gradient(145deg, $brand-sidebar 0%, #1e4974 38%, $brand-accent 100%);
   }
 }
 
 .login-card {
   width: 100%;
   max-width: 400px;
-  background: #fff;
-  border-radius: 16px;
+  background: $bg-card;
+  border-radius: $radius-md;
   padding: 40px 36px 32px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.10);
+  border: 1px solid $border-lighter;
+  box-shadow: 0 8px 40px rgb(45 90 142 / 0.12);
 
   @media (max-width: 900px) {
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 20px 60px rgb(0 0 0 / 0.22);
   }
 }
 
@@ -336,13 +337,13 @@ import { nextTick } from 'vue'
 .card-title {
   font-size: 24px;
   font-weight: 700;
-  color: #1b2d45;
+  color: $text-primary;
   margin: 0 0 8px;
 }
 
 .card-desc {
   font-size: 14px;
-  color: #909399;
+  color: $text-secondary;
   margin: 0;
 }
 
@@ -360,7 +361,7 @@ import { nextTick } from 'vue'
 .field-label {
   font-size: 13px;
   font-weight: 600;
-  color: #606266;
+  color: $text-regular;
   margin-bottom: 6px;
   display: block;
 }
@@ -374,14 +375,14 @@ import { nextTick } from 'vue'
 
   :deep(.el-checkbox__label) {
     font-size: 13px;
-    color: #606266;
+    color: $text-regular;
   }
 }
 
 // 错误提示
 .error-alert {
   margin-bottom: 16px;
-  border-radius: 8px;
+  border-radius: $radius-sm;
 }
 
 .error-fade-enter-active,
@@ -398,14 +399,14 @@ import { nextTick } from 'vue'
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 6px;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #5b8def, #722ed1);
+  border-radius: $radius-sm;
+  background: linear-gradient(90deg, $brand-sidebar, $brand-accent);
   border: none;
   transition: opacity 0.2s, box-shadow 0.2s;
 
   &:hover:not(:disabled) {
-    opacity: 0.92;
-    box-shadow: 0 6px 20px rgba(91, 141, 239, 0.45);
+    opacity: 0.94;
+    box-shadow: 0 8px 24px rgb(45 90 142 / 0.35);
   }
 }
 
@@ -413,7 +414,7 @@ import { nextTick } from 'vue'
 .card-footer {
   text-align: center;
   font-size: 12px;
-  color: #c0c4cc;
+  color: $text-disabled;
   margin: 24px 0 0;
 }
 </style>

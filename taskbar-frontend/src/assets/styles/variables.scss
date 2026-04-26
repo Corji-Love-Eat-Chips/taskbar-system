@@ -1,28 +1,44 @@
-// ── Element Plus 主色覆盖 ─────────────────────────────────────────────────
-// 须在 vite.config.js 的 preprocessorOptions.scss.additionalData 中引入
+// ═══════════════════════════════════════════════════════════════════════════
+// 设计令牌 — 与参考前端 app/ 对齐
+//   · app/src/index.css（HSL 语义色、圆角 --radius: 0.625rem）
+//   · app/src/components/layout/Sidebar.tsx（侧栏 #2D5A8E、白字层级）
+//   · app/src/components/layout/Header.tsx（顶栏白底、灰边、头像 #3B6BFF）
+// ═══════════════════════════════════════════════════════════════════════════
 
-$primary:   #2d6a9f;
-$success:   #67c23a;
-$warning:   #e6a23c;
-$danger:    #f56c6c;
-$info:      #909399;
+// ── 品牌色（与 app 侧栏 / 主按钮一致）──────────────────────────────────────
+$brand-sidebar: #2d5a8e;
+$brand-accent: #3b6bff;
+// 与主色一致的浅底（列表选中、日历今日底等）
+$brand-surface: #e8eef4;
+$brand-surface-strong: #eef3f9;
 
-// ── 布局尺寸 ──────────────────────────────────────────────────────────────
-$sidebar-width:           220px;
-$sidebar-collapsed-width:  64px;
-$header-height:            56px;
+// Element Plus / 业务主色
+$primary: $brand-sidebar;
+$success: #67c23a;
+$warning: #e6a23c;
+$danger: #f56c6c;
+$info: #909399;
 
-// ── 文字颜色 ──────────────────────────────────────────────────────────────
-$text-primary:   #303133;
-$text-regular:   #606266;
-$text-secondary: #909399;
-$text-disabled:  #c0c4cc;
+// ── 布局尺寸（app Header h-14 = 56px）──────────────────────────────────────
+$sidebar-width: 220px;
+$sidebar-collapsed-width: 64px;
+$header-height: 56px;
 
-// ── 边框 ──────────────────────────────────────────────────────────────────
-$border-base:   #dcdfe6;
-$border-light:  #e4e7ed;
-$border-lighter:#ebeef5;
+// ── 文字（贴近 Tailwind gray-800 / gray-500）───────────────────────────────
+$text-primary: #1f2937;
+$text-regular: #4b5563;
+$text-secondary: #6b7280;
+$text-disabled: #9ca3af;
 
-// ── 背景 ──────────────────────────────────────────────────────────────────
-$bg-page:  #f0f2f5;
-$bg-card:  #ffffff;
+// ── 边框（gray-200）────────────────────────────────────────────────────────
+$border-base: #e5e7eb;
+$border-light: #e5e7eb;
+$border-lighter: #f3f4f6;
+
+// ── 背景（app background / muted 感）───────────────────────────────────────
+$bg-page: #f9fafb;
+$bg-card: #ffffff;
+
+// ── 圆角（app --radius 0.625rem ≈ 10px）────────────────────────────────────
+$radius-md: 10px;
+$radius-sm: 6px;

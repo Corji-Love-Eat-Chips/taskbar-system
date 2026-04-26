@@ -1,0 +1,90 @@
+/**
+ * 方案 C · 外观与体验：全局表格/分页/焦点/弹层等（不写业务逻辑）
+ * 在 main.js 中于 main.scss 之后引入
+ */
+@use 'sass:color';
+@use '@/assets/styles/variables' as *;
+
+// ── 数据表格：表头层次、行 hover、与品牌色弱关联 ─────────────────────────────
+.el-table {
+  --el-table-header-bg-color: #{color.mix($bg-card, $bg-page, 65%)};
+  --el-table-row-hover-bg-color: #{color.mix(#fff, $brand-sidebar, 96%)};
+  --el-table-border-color: #{$border-lighter};
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.el-table__header-wrapper th.el-table__cell {
+  font-weight: 600;
+  color: $text-primary;
+  font-size: 13px;
+}
+
+.el-table .cell {
+  line-height: 1.5;
+}
+
+.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background: #{color.mix($bg-page, #fff, 35%)};
+}
+
+// ── 分页：与表格卡片留白节奏一致 ───────────────────────────────────────────
+.el-pagination {
+  padding: 14px 4px 6px;
+  flex-wrap: wrap;
+  gap: 8px 0;
+}
+
+// ── 空状态 ─────────────────────────────────────────────────────────────────
+.el-empty {
+  padding: 28px 16px;
+}
+
+.el-empty__description {
+  color: $text-secondary;
+  font-size: 13px;
+}
+
+// ── 弹层：略柔化背景、圆角与内容区一致 ─────────────────────────────────────
+.el-overlay-message,
+.el-overlay-dialog {
+  backdrop-filter: saturate(120%) blur(2px);
+}
+
+.el-dialog {
+  border-radius: $radius-md;
+  overflow: hidden;
+  box-shadow:
+    0 25px 50px -12px rgb(0 0 0 / 0.18),
+    0 0 0 1px rgb(0 0 0 / 0.04);
+}
+
+.el-drawer {
+  .el-drawer__header {
+    font-weight: 600;
+    color: $text-primary;
+  }
+}
+
+// ── 键盘焦点：可见且不抢眼（与品牌accent弱关联）──────────────────────────────
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid color.mix($brand-accent, $brand-sidebar, 50%);
+  outline-offset: 2px;
+}
+
+// ── 主按钮：轻微过渡（感知更顺滑）──────────────────────────────────────────
+.el-button--primary {
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+// ── Tag：略收紧字距 ─────────────────────────────────────────────────────────
+.el-tag {
+  border-radius: $radius-sm;
+}

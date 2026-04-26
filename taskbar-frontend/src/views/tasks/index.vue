@@ -588,9 +588,10 @@ loadTasks()
   gap: 12px;
   flex-wrap: wrap;
   background: $bg-card;
-  padding: 14px 16px;
-  border-radius: 8px;
+  padding: 14px 18px;
+  border-radius: $radius-md;
   border: 1px solid $border-light;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
 }
 
 .filters {
@@ -636,7 +637,7 @@ loadTasks()
 
 // ── 表格卡片 ──────────────────────────────────────────────────────────────────
 .table-card {
-  border-radius: 8px;
+  border-radius: $radius-md;
 
   :deep(.el-card__body) { padding: 0; }
 }

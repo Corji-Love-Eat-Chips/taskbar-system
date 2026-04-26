@@ -414,9 +414,10 @@ function handleFormSuccess() {
   align-items: center;
   justify-content: space-between;
   background: $bg-card;
-  border-radius: 10px;
-  padding: 12px 16px;
+  border-radius: $radius-md;
+  padding: 14px 18px;
   border: 1px solid $border-light;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
   flex-wrap: wrap;
   gap: 10px;
 }
@@ -449,10 +450,11 @@ function handleFormSuccess() {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 8px 16px;
+  padding: 10px 18px;
   background: $bg-card;
-  border-radius: 8px;
+  border-radius: $radius-md;
   border: 1px solid $border-light;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
   flex-wrap: wrap;
 }
 
@@ -485,8 +487,9 @@ function handleFormSuccess() {
 // ── 日历容器 ──────────────────────────────────────────────────────────────────
 .calendar-wrap {
   background: $bg-card;
-  border-radius: 10px;
+  border-radius: $radius-md;
   border: 1px solid $border-light;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
   padding: 16px;
   overflow: hidden;
 }
@@ -541,11 +544,11 @@ function handleFormSuccess() {
 
   // 日期格子
   :deep(.fc-daygrid-day) {
-    &:hover { background: #fafbff; }
+    &:hover { background: $brand-surface-strong; }
   }
 
   :deep(.fc-day-today) {
-    background: #f0f5ff !important;
+    background: $brand-surface-strong !important;
     .fc-daygrid-day-number { color: $primary; font-weight: 700; }
   }
 

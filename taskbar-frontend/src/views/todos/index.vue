@@ -518,8 +518,9 @@ loadTodos()   // 初始加载全部待办
   width: 16.25rem;
   flex-shrink: 0;
   background: $bg-card;
-  border-radius: 0.625rem;
+  border-radius: $radius-md;
   border: 1px solid $border-light;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -605,7 +606,7 @@ loadTodos()   // 初始加载全部待办
   transition: background 0.15s;
 
   &:hover    { background: $bg-page; }
-  &.active   { background: #e8f0fe; }
+  &.active   { background: $brand-surface; }
 
   .task-item__name {
     font-size: 0.8125rem;
@@ -638,7 +639,7 @@ loadTodos()   // 初始加载全部待办
   flex-shrink: 0;
 
   &:hover { background: $bg-page; }
-  &.active { background: #e8f0fe; color: $primary; }
+  &.active { background: $brand-surface; color: $primary; }
 }
 
 // 分组折叠动画
@@ -655,8 +656,9 @@ loadTodos()   // 初始加载全部待办
 .todo-panel {
   flex: 1;
   background: $bg-card;
-  border-radius: 0.625rem;
+  border-radius: $radius-md;
   border: 1px solid $border-light;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -811,7 +813,7 @@ loadTodos()   // 初始加载全部待办
 // 拖拽占位样式
 .todo-ghost {
   opacity: 0.4;
-  background: #e8f0fe;
+  background: $brand-surface;
 }
 
 // ── 分组内快速新增 ────────────────────────────────────────────────────────────

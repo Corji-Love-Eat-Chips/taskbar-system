@@ -2,7 +2,7 @@
   <!--
     整体结构
     ┌──────────────────────────────────────────┐
-    │             Header  (60px)               │
+    │             Header  (56px)               │
     ├───────────┬──────────────────────────────┤
     │           │                              │
     │  Sidebar  │       <router-view>          │
@@ -59,15 +59,15 @@ const currentPath  = computed(() => route.path)
 </script>
 
 <style lang="scss" scoped>
-$header-h: 60px;
+$header-h: $header-height;
 
-// ── 外层容器 ─────────────────────────────────────────────────────────────────
+// ── 外层容器（与 app 内容区浅灰底一致）──────────────────────────────────────
 .app-shell {
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: #f0f2f5;
+  background: $bg-page;
 }
 
 // ── Header 固定高度 ──────────────────────────────────────────────────────────
@@ -97,17 +97,29 @@ $header-h: 60px;
   overflow: hidden;
 }
 
-// 面包屑栏
+// 面包屑栏（略抬层次，与内容区区分）
 .main-breadcrumb {
   flex-shrink: 0;
-  height: 44px;
-  line-height: 44px;
-  padding: 0 20px;
-  background: #fff;
-  border-bottom: 1px solid #ebeef5;
+  min-height: 46px;
+  line-height: 46px;
+  padding: 0 22px;
+  background: $bg-card;
+  border-bottom: 1px solid $border-lighter;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.8);
 
-  :deep(.el-breadcrumb) { line-height: 44px; }
-  :deep(.el-breadcrumb__separator) { color: #c0c4cc; }
+  :deep(.el-breadcrumb) {
+    line-height: 46px;
+    font-size: 13px;
+  }
+  :deep(.el-breadcrumb__inner) {
+    color: $text-secondary;
+    font-weight: 500;
+  }
+  :deep(.el-breadcrumb__item:last-child .el-breadcrumb__inner) {
+    color: $text-primary;
+    font-weight: 600;
+  }
+  :deep(.el-breadcrumb__separator) { color: $text-disabled; margin: 0 6px; }
 }
 
 // 滚动内容区
@@ -120,14 +132,16 @@ $header-h: 60px;
 // ── 页面切换动画 ─────────────────────────────────────────────────────────────
 .page-fade-enter-active,
 .page-fade-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition:
+    opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .page-fade-enter-from {
   opacity: 0;
-  transform: translateY(6px);
+  transform: translateY(8px);
 }
 .page-fade-leave-to {
   opacity: 0;
-  transform: translateY(-6px);
+  transform: translateY(-4px);
 }
 </style>

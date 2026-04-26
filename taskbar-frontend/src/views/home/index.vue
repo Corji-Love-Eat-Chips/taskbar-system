@@ -237,8 +237,8 @@ const statCards = computed(() => [
     value: stats.value?.tasks.in_progress ?? '--',
     sub:   stats.value ? `共 ${stats.value.tasks.total} 个任务` : null,
     icon:  List,
-    color: '#409eff',
-    bg:    '#ecf5ff',
+    color: '#2d5a8e',
+    bg:    '#e8eef4',
   },
   {
     key:   'week_meeting',
@@ -335,8 +335,8 @@ onMounted(() => {
 
 // ── 欢迎横幅 ─────────────────────────────────────────────────────────────────
 .welcome-banner {
-  background: linear-gradient(135deg, #1e3a5f, #2d6a9f);
-  border-radius: 0.625rem;
+  background: linear-gradient(135deg, $brand-sidebar 0%, #245080 42%, $brand-accent 100%);
+  border-radius: $radius-md;
   padding: 1.375rem 1.75rem;
   color: #fff;
   display: flex;
@@ -344,9 +344,10 @@ onMounted(() => {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.75rem;
+  box-shadow: 0 8px 28px rgb(45 90 142 / 0.22);
 
   h2 { margin: 0 0 0.25rem; font-size: 1.25rem; }
-  p  { margin: 0; font-size: 0.8125rem; opacity: .75; }
+  p  { margin: 0; font-size: 0.8125rem; opacity: .78; }
 }
 
 .welcome-right {
@@ -428,7 +429,7 @@ onMounted(() => {
   }
 
   &.is-active {
-    color: #1e3a5f;
+    color: $brand-sidebar;
   }
 
   &:focus-visible {
@@ -454,10 +455,18 @@ onMounted(() => {
 }
 
 .stat-card {
-  border-radius: 0.625rem;
+  border-radius: $radius-md;
   flex: 1;
   width: 100%;
   min-width: 0;
+  border: 1px solid $border-lighter;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+
+  &:hover {
+    border-color: $border-base;
+    box-shadow: 0 4px 14px rgb(45 90 142 / 0.08);
+  }
 
   :deep(.el-card__body) { padding: 1rem; }
 }
@@ -509,7 +518,9 @@ onMounted(() => {
 
 .panel-card {
   height: 100%;
-  border-radius: 0.625rem;
+  border-radius: $radius-md;
+  border: 1px solid $border-lighter;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.04);
 
   :deep(.el-card__header) { padding: 0.75rem 1rem; }
   :deep(.el-card__body)   { padding: 0.5rem 1rem 1rem; }

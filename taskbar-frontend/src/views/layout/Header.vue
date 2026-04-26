@@ -103,7 +103,7 @@ import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/user'
 
 // ── 常量 ──────────────────────────────────────────────────────────────────
-const HEADER_H = 60
+const HEADER_H = 56
 
 const router    = useRouter()
 const userStore = useUserStore()
@@ -173,7 +173,7 @@ async function handleCommand(cmd) {
 </script>
 
 <style lang="scss" scoped>
-$header-h: 60px;
+$header-h: $header-height;
 
 .app-header {
   display: flex;
@@ -181,9 +181,9 @@ $header-h: 60px;
   justify-content: space-between;
   height: $header-h !important;
   padding: 0 24px;
-  background: #fff;
-  border-bottom: 1px solid #ebeef5;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+  background: $bg-card;
+  border-bottom: 1px solid $border-light;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   flex-shrink: 0;
   z-index: 100;
 }
@@ -193,10 +193,10 @@ $header-h: 60px;
 
 .system-title {
   font-size: 18px;
-  font-weight: 700;
-  color: #1b2d45;
+  font-weight: 600;
+  color: $text-primary;
   margin: 0;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
@@ -208,8 +208,11 @@ $header-h: 60px;
 }
 
 .icon-btn {
-  color: #606266;
-  &:hover { color: #409eff; background: #f0f7ff !important; }
+  color: $text-secondary;
+  &:hover {
+    color: $primary;
+    background: rgba($brand-sidebar, 0.08) !important;
+  }
 }
 
 .notice-badge {
@@ -235,9 +238,9 @@ $header-h: 60px;
 }
 
 .user-avatar {
-  background: linear-gradient(135deg, #2d6a9f, #409eff);
+  background: $brand-accent;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   flex-shrink: 0;
 }
 
@@ -250,12 +253,12 @@ $header-h: 60px;
 .user-display {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: $text-primary;
 }
 
 .user-role {
   font-size: 11px;
-  color: #909399;
+  color: $text-secondary;
 }
 
 .caret {
@@ -272,21 +275,21 @@ $header-h: 60px;
 }
 
 .dh-avatar {
-  background: linear-gradient(135deg, #2d6a9f, #409eff);
+  background: $brand-accent;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   flex-shrink: 0;
 }
 
 .dh-name {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: $text-primary;
 }
 
 .dh-role {
   font-size: 12px;
-  color: #909399;
+  color: $text-secondary;
   margin-top: 2px;
 }
 

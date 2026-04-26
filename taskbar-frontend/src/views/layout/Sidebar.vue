@@ -101,15 +101,15 @@ const adminMenus = [
 </script>
 
 <style lang="scss" scoped>
-// ── 设计 token ──────────────────────────────────────────────────────────────
-$sb-bg:          #1b2d45;
+// ── 与 app/Sidebar.tsx 一致：#2D5A8E、白字层级、左侧高亮条 ───────────────────
+$sb-bg:          $brand-sidebar;
 $sb-hover:       rgba(255, 255, 255, 0.10);
-$sb-active:      rgba(64, 158, 255, 0.18);
-$sb-active-bar:  #409eff;
-$sb-text:        #b8c8da;
+$sb-active:      rgba(255, 255, 255, 0.15);
+$sb-active-bar:  #ffffff;
+$sb-text:        rgba(255, 255, 255, 0.7);
 $sb-text-active: #ffffff;
-$sb-group-text:  rgba(255, 255, 255, 0.35);
-$header-h:       60px;
+$sb-group-text:  rgba(255, 255, 255, 0.4);
+$header-h:       $header-height;
 $footer-h:       48px;
 
 .sidebar {
@@ -129,7 +129,7 @@ $footer-h:       48px;
   align-items: center;
   justify-content: flex-start;
   padding: 0 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 0;
@@ -150,7 +150,7 @@ $footer-h:       48px;
   letter-spacing: 0.3px;
 }
 
-.logo-dot { color: $sb-active-bar; font-size: 10px; }
+.logo-dot { color: rgba(255, 255, 255, 0.85); font-size: 10px; }
 
 .logo-mini {
   color: #fff;
@@ -184,11 +184,11 @@ $footer-h:       48px;
   }
 
   :deep(.el-menu-item) {
-    height: 48px;
-    line-height: 48px;
+    height: 44px;
+    line-height: 44px;
     color: $sb-text;
-    border-radius: 6px;
-    margin: 2px 8px;
+    border-radius: $radius-md;
+    margin: 4px 8px;
     width: calc(100% - 16px);
 
     .el-icon { font-size: 18px; }
@@ -206,13 +206,13 @@ $footer-h:       48px;
       &::after {
         content: '';
         position: absolute;
-        right: 0;
+        left: 0;
         top: 50%;
         transform: translateY(-50%);
         width: 3px;
         height: 20px;
         background: $sb-active-bar;
-        border-radius: 2px 0 0 2px;
+        border-radius: 0 2px 2px 0;
       }
     }
   }
@@ -233,7 +233,7 @@ $footer-h:       48px;
 // ── 分割线 ────────────────────────────────────────────────────────────────
 .menu-divider {
   height: 1px;
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.1);
   margin: 8px 16px;
 }
 
@@ -247,7 +247,7 @@ $footer-h:       48px;
   padding: 0 20px;
   cursor: pointer;
   color: $sb-text;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   transition: background 0.2s;
   flex-shrink: 0;
   white-space: nowrap;

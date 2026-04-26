@@ -7,6 +7,7 @@ import App from './App.vue'
 import router from './router'
 
 import '@/assets/styles/main.scss'
+import '@/assets/styles/ui-polish.scss'
 import { applyFontSize, readFontSize } from '@/composables/useAppFontSize'
 
 applyFontSize(readFontSize())
