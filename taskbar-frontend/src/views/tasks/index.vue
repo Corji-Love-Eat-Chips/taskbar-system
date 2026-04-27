@@ -135,11 +135,23 @@
         :data="taskList"
         row-key="task_id"
         stripe
+        border
         :empty-text="loading ? '加载中…' : '暂无任务数据'"
         style="width: 100%"
+        @sort-change="onSortChange"
+        @header-dragend="onHeaderDragEnd"
       >
         <!-- 任务名称：点击查看详情 -->
-        <el-table-column label="任务名称" min-width="220" show-overflow-tooltip>
+        <el-table-column
+          label="任务名称"
+          prop="task_name"
+          column-key="task_name"
+          sortable="custom"
+          resizable
+          :width="colWidths.task_name"
+          :min-width="120"
+          show-overflow-tooltip
+        >
           <template #default="{ row }">
             <span class="task-name-link" @click="handleViewDetail(row)">
               {{ row.task_name }}
@@ -148,10 +160,28 @@
         </el-table-column>
 
         <!-- 负责人 -->
-        <el-table-column label="负责人" prop="owner_name" width="90" align="center" />
+        <el-table-column
+          label="负责人"
+          prop="owner_name"
+          column-key="owner_name"
+          sortable="custom"
+          resizable
+          :width="colWidths.owner_name"
+          :min-width="72"
+          align="center"
+        />
 
         <!-- 截止日期 -->
-        <el-table-column label="截止日期" width="120" align="center">
+        <el-table-column
+          label="截止日期"
+          prop="end_date"
+          column-key="end_date"
+          sortable="custom"
+          resizable
+          :width="colWidths.end_date"
+          :min-width="96"
+          align="center"
+        >
           <template #default="{ row }">
             <div :class="['date-cell', dateClass(row.end_date, row.status)]">
               {{ row.end_date }}
@@ -174,7 +204,16 @@
         </el-table-column>
 
         <!-- 状态 -->
-        <el-table-column label="状态" width="95" align="center">
+        <el-table-column
+          label="状态"
+          prop="status"
+          column-key="status"
+          sortable="custom"
+          resizable
+          :width="colWidths.status"
+          :min-width="72"
+          align="center"
+        >
           <template #default="{ row }">
             <el-tag
               :type="STATUS_MAP[row.status]?.type ?? 'info'"
@@ -187,7 +226,15 @@
         </el-table-column>
 
         <!-- 进度 -->
-        <el-table-column label="进度" width="140">
+        <el-table-column
+          label="进度"
+          prop="progress"
+          column-key="progress"
+          sortable="custom"
+          resizable
+          :width="colWidths.progress"
+          :min-width="100"
+        >
           <template #default="{ row }">
             <div class="progress-cell">
               <el-progress
@@ -202,7 +249,16 @@
         </el-table-column>
 
         <!-- 分类 -->
-        <el-table-column label="分类" width="120" align="center">
+        <el-table-column
+          label="分类"
+          prop="category"
+          column-key="category"
+          sortable="custom"
+          resizable
+          :width="colWidths.category"
+          :min-width="88"
+          align="center"
+        >
           <template #default="{ row }">
             <span class="category-tag" :style="categoryTagStyle(row.category)">
               {{ row.category }}
@@ -211,7 +267,16 @@
         </el-table-column>
 
         <!-- 优先级 -->
-        <el-table-column label="优先级" width="80" align="center">
+        <el-table-column
+          label="优先级"
+          prop="priority"
+          column-key="priority"
+          sortable="custom"
+          resizable
+          :width="colWidths.priority"
+          :min-width="64"
+          align="center"
+        >
           <template #default="{ row }">
             <el-tag
               :type="PRIORITY_MAP[row.priority]?.type ?? 'info'"
@@ -224,7 +289,15 @@
         </el-table-column>
 
         <!-- 操作 -->
-        <el-table-column label="操作" width="200" align="center" fixed="right">
+        <el-table-column
+          label="操作"
+          column-key="actions"
+          resizable
+          :width="colWidths.actions"
+          :min-width="160"
+          align="center"
+          fixed="right"
+        >
           <template #default="{ row }">
             <!-- 管理员 / 领导 -->
             <template v-if="userStore.isAdmin || userStore.isLeader">
@@ -331,6 +404,57 @@ const PRIORITY_MAP = {
 
 const CATEGORY_COLOR_MAP = Object.fromEntries(CATEGORIES.map(c => [c.name, c.color]))
 
+// ── 表格列宽（localStorage）──────────────────────────────────────────────────
+const COL_WIDTH_STORAGE_KEY = 'taskbar_tasks_col_widths'
+const COL_WIDTH_DEFAULTS = {
+  task_name:  220,
+  owner_name: 90,
+  end_date:   120,
+  status:     95,
+  progress:   140,
+  category:   120,
+  priority:   80,
+  actions:    200,
+}
+
+function loadColWidths() {
+  try {
+    const raw = localStorage.getItem(COL_WIDTH_STORAGE_KEY)
+    if (!raw) return { ...COL_WIDTH_DEFAULTS }
+    const o = JSON.parse(raw)
+    const out = { ...COL_WIDTH_DEFAULTS }
+    for (const k of Object.keys(out)) {
+      const n = Number(o[k])
+      if (Number.isFinite(n) && n >= 56) out[k] = Math.round(n)
+    }
+    return out
+  } catch {
+    return { ...COL_WIDTH_DEFAULTS }
+  }
+}
+
+const colWidths = reactive(loadColWidths())
+
+function persistColWidths() {
+  try {
+    localStorage.setItem(COL_WIDTH_STORAGE_KEY, JSON.stringify({ ...colWidths }))
+  } catch {
+    /* ignore */
+  }
+}
+
+function onHeaderDragEnd(newWidth, _oldWidth, column) {
+  const key = column.columnKey
+  if (key && key in colWidths && Number.isFinite(Number(newWidth))) {
+    colWidths[key] = Math.max(56, Math.round(Number(newWidth)))
+    persistColWidths()
+  }
+}
+
+// ── 排序（后端，请求参数在 loadTasks 中带上）──────────────────────────────────
+const sortBy = ref('task_id')
+const sortOrder = ref('desc')
+
 // ── 列表状态 ──────────────────────────────────────────────────────────────────
 const loading  = ref(false)
 const taskList = ref([])
@@ -406,8 +530,10 @@ async function loadTasks() {
   loading.value = true
   try {
     const params = {
-      page:      pagination.page,
-      page_size: pagination.pageSize,
+      page:        pagination.page,
+      page_size:   pagination.pageSize,
+      sort_by:     sortBy.value,
+      sort_order:  sortOrder.value,
     }
     if (filters.period_id) params.period_id = filters.period_id
     if (filters.category)  params.category  = filters.category
@@ -423,6 +549,18 @@ async function loadTasks() {
   } finally {
     loading.value = false
   }
+}
+
+function onSortChange({ prop, order }) {
+  if (!prop || !order) {
+    sortBy.value    = 'task_id'
+    sortOrder.value = 'desc'
+  } else {
+    sortBy.value    = prop
+    sortOrder.value = order === 'ascending' ? 'asc' : 'desc'
+  }
+  pagination.page = 1
+  loadTasks()
 }
 
 // ── 工具函数 ──────────────────────────────────────────────────────────────────

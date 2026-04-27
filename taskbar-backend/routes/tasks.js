@@ -37,6 +37,17 @@ const validateDate = (field, label) =>
 // 有效的任务状态枚举
 const TASK_STATUSES = ['pending', 'in_progress', 'completed', 'delayed', 'cancelled']
 const TASK_PRIORITIES = ['high', 'medium', 'low']
+const TASK_SORT_BY = [
+  'task_id',
+  'task_name',
+  'owner_name',
+  'end_date',
+  'start_date',
+  'status',
+  'progress',
+  'category',
+  'priority',
+]
 
 // ─── GET /api/tasks ───────────────────────────────────────────────────────────
 /**
@@ -52,6 +63,8 @@ router.get(
     query('page').optional().isInt({ min: 1 }).withMessage('page 必须为正整数'),
     query('page_size').optional().isInt({ min: 1, max: 100 }).withMessage('page_size 范围 1-100'),
     query('pageSize').optional().isInt({ min: 1, max: 100 }).withMessage('pageSize 范围 1-100'),
+    query('sort_by').optional().isIn(TASK_SORT_BY).withMessage('sort_by 无效'),
+    query('sort_order').optional().isIn(['asc', 'desc']).withMessage('sort_order 须为 asc 或 desc'),
   ],
   asyncHandler(ctrl.list),
 )

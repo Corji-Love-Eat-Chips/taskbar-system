@@ -78,12 +78,36 @@ async function fetchCollaborators(taskId) {
  *   keyword?: string,
  *   page?: number,
  *   pageSize?: number,
+ *   sort_by?: string,    // 白名单字段，见 SORT_COLUMNS
+ *   sort_order?: 'asc' | 'desc',
  *   viewer?: { role: string, staffId: number|null }
  * }} params
  */
+const SORT_COLUMNS = {
+  task_name: 't.task_name',
+  owner_name: 's.name',
+  end_date: 't.end_date',
+  start_date: 't.start_date',
+  status: 't.status',
+  progress: 't.progress',
+  category: 't.category',
+  task_id: 't.task_id',
+}
+
+function buildTaskListOrderBy(sort_by, sort_order) {
+  const dir = sort_order === 'asc' ? 'ASC' : 'DESC'
+  if (sort_by === 'priority') {
+    return `ORDER BY FIELD(t.priority, 'low', 'medium', 'high') ${dir}, t.task_id DESC`
+  }
+  const col = SORT_COLUMNS[sort_by]
+  if (!col) return 'ORDER BY t.task_id DESC'
+  return `ORDER BY ${col} ${dir}, t.task_id DESC`
+}
+
 async function getTaskList({
   period_id, owner_id, category, status, keyword,
   page = 1, pageSize = 20,
+  sort_by, sort_order,
   viewer = null,
 } = {}) {
   const offset = (Number(page) - 1) * Number(pageSize)
@@ -114,6 +138,7 @@ async function getTaskList({
   if (keyword)   { cond.push('t.task_name LIKE ?');       vals.push(`%${keyword}%`) }
 
   const where = cond.length ? `WHERE ${cond.join(' AND ')}` : ''
+  const orderSql = buildTaskListOrderBy(sort_by, sort_order)
 
   const [[{ total }]] = await pool.query(
     `SELECT COUNT(*) AS total FROM tasks t ${where}`, vals,
@@ -130,7 +155,7 @@ async function getTaskList({
        LEFT JOIN periods p ON p.period_id = t.period_id
        LEFT JOIN staff   s ON s.staff_id  = t.owner_id
       ${where}
-      ORDER BY t.task_id DESC
+      ${orderSql}
       LIMIT ? OFFSET ?`,
     [...vals, Number(pageSize), offset],
   )

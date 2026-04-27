@@ -12,6 +12,8 @@ import request from '@/utils/request'
  *   category?: string,    // 分类
  *   status?: string,      // pending | in_progress | completed | cancelled
  *   keyword?: string,     // 任务名称关键词
+ *   sort_by?: string,     // task_id | task_name | owner_name | end_date | …
+ *   sort_order?: 'asc' | 'desc',
  *   page?: number,
  *   pageSize?: number
  * }} params

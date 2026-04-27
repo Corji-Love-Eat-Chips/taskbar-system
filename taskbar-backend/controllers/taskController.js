@@ -22,8 +22,10 @@ function pickErrors(req, res) {
  * 查询参数兼容 page_size（文档）与 pageSize（驼峰）
  */
 async function list(req, res) {
-  const { period_id, owner_id, category, status, keyword, page } = req.query
+  const { period_id, owner_id, category, status, keyword, page, sort_by, sort_order } = req.query
   const page_size = req.query.page_size ?? req.query.pageSize ?? 20
+
+  const order = sort_order === 'asc' || sort_order === 'desc' ? sort_order : undefined
 
   const result = await taskService.getTaskList({
     period_id,
@@ -33,6 +35,8 @@ async function list(req, res) {
     keyword,
     page: page ?? 1,
     pageSize: page_size,
+    sort_by,
+    sort_order: order,
     viewer: {
       role:    req.currentUser.role,
       staffId: req.currentUser.staffId,
