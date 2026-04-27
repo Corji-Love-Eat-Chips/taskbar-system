@@ -40,7 +40,8 @@
               v-model="form.owner_id"
               placeholder="请选择负责人"
               filterable
-              clearable
+              :clearable="!lockOwnerForTeacher"
+              :disabled="lockOwnerForTeacher"
               class="full-width"
             >
               <el-option
@@ -265,6 +266,11 @@ const userStore = useUserStore()
 // ── 是否编辑模式 ──────────────────────────────────────────────────────────────
 const isEdit = computed(() => !!props.taskId)
 
+/** 教师新建任务时负责人固定为本人（与后端一致） */
+const lockOwnerForTeacher = computed(
+  () => !isEdit.value && userStore.role === 'teacher',
+)
+
 // ── 常量 ──────────────────────────────────────────────────────────────────────
 const CATEGORIES = [
   { name: '教学工作',    color: '#5B8DEF' },
@@ -449,16 +455,18 @@ function handleClosed() {
 }
 
 // ── 监听弹窗打开 ──────────────────────────────────────────────────────────────
-watch(modelVisible, (open) => {
+watch(modelVisible, async (open) => {
   if (!open) return
 
-  // 每次打开都重新拉取在职人员，避免缓存空列表或数据过期
-  loadStaff()
+  await loadStaff()
 
   if (props.taskId) {
-    loadTaskForEdit(props.taskId)
+    await loadTaskForEdit(props.taskId)
   } else {
     Object.assign(form, defaultForm())
+    if (userStore.role === 'teacher' && userStore.staffId != null) {
+      form.owner_id = userStore.staffId
+    }
   }
 })
 </script>

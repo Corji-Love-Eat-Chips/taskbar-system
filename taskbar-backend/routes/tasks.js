@@ -109,11 +109,11 @@ router.get('/:id', [validateId], asyncHandler(ctrl.detail))
 
 // ─── POST /api/tasks ──────────────────────────────────────────────────────────
 /**
- * 新增任务（管理员 / 领导）
+ * 新增任务（管理员 / 领导任意负责人；教师仅可创建本人为负责人的任务，见 taskController.create）
  */
 router.post(
   '/',
-  requireAdminOrLeader,
+  requireAuth,
   [
     body('task_name')
       .trim().notEmpty().withMessage('任务名称不能为空')

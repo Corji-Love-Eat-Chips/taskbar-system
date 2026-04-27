@@ -186,3 +186,25 @@ ON DUPLICATE KEY UPDATE
   staff_id = VALUES(staff_id),
   status = VALUES(status),
   updated_at = CURRENT_TIMESTAMP;
+
+-- -----------------------------------------------------------------------------
+-- 5. 示例教师/领导登录账号（用户名 = 工号 staff_code，初始密码 Welcome@123）
+--    bcryptjs 10 轮；若账号已存在则仅更新密码为下列哈希，便于开发环境对齐文档
+-- -----------------------------------------------------------------------------
+INSERT INTO users (username, password, salt, role, staff_id, status)
+SELECT
+  s.staff_code,
+  '$2a$10$TMIk.HG8E9Q06oenQ8B/Q.UiyzhCBKnVLiRHovI9zeqGpmbOMf6V6',
+  'bcrypt',
+  CASE s.staff_code WHEN 'T001' THEN 'leader' ELSE 'teacher' END,
+  s.staff_id,
+  1
+FROM staff s
+WHERE s.staff_code IN ('T001','T002','T003','T004','T005','T006','T007','T008','T009')
+ON DUPLICATE KEY UPDATE
+  password = VALUES(password),
+  salt = VALUES(salt),
+  role = VALUES(role),
+  staff_id = VALUES(staff_id),
+  status = VALUES(status),
+  updated_at = CURRENT_TIMESTAMP;

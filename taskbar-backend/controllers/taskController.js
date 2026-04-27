@@ -59,6 +59,20 @@ async function detail(req, res) {
  */
 async function create(req, res) {
   if (pickErrors(req, res)) return
+
+  const { role, staffId } = req.currentUser
+  if (role === 'teacher') {
+    if (staffId == null) {
+      return fail(res, '当前账号未绑定人员，无法创建任务', 403)
+    }
+    const ownerId = Number(req.body.owner_id)
+    if (!Number.isInteger(ownerId) || ownerId !== Number(staffId)) {
+      return fail(res, '教师仅能创建「本人为负责人」的任务', 403)
+    }
+  } else if (role !== 'admin' && role !== 'leader') {
+    return fail(res, '权限不足', 403)
+  }
+
   const task = await taskService.createTask(req.body, req.currentUser.userId)
   return created(res, task, '任务创建成功')
 }

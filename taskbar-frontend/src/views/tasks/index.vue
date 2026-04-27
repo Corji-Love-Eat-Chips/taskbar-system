@@ -118,11 +118,7 @@
             <el-icon><Upload /></el-icon> 批量导入
           </el-button>
         </el-upload>
-        <el-button
-          v-if="userStore.isAdmin || userStore.isLeader"
-          type="primary"
-          @click="handleCreate"
-        >
+        <el-button type="primary" @click="handleCreate">
           <el-icon><Plus /></el-icon> 新增任务
         </el-button>
       </div>
