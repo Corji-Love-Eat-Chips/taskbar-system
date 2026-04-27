@@ -17,252 +17,213 @@
       ref="formRef"
       :model="form"
       :rules="rules"
-      label-width="auto"
-      label-position="right"
-      class="task-form"
+      label-position="top"
+      class="task-form task-form--relaxed"
     >
-      <!-- ① 任务名称 -->
-      <el-form-item label="任务名称" prop="task_name">
-        <el-input
-          v-model="form.task_name"
-          placeholder="请输入任务名称"
-          maxlength="100"
-          show-word-limit
-          clearable
-        />
-      </el-form-item>
+      <!-- 基本信息 -->
+      <div class="form-section">
+        <div class="section-title">基本信息</div>
+        <el-form-item label="任务名称" prop="task_name" class="form-item-tight-bottom">
+          <el-input
+            v-model="form.task_name"
+            placeholder="请输入任务名称"
+            maxlength="100"
+            show-word-limit
+            clearable
+            size="large"
+          />
+        </el-form-item>
+      </div>
 
-      <!-- ② 负责人 + 所属周期 -->
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="负责人" prop="owner_id">
-            <el-select
-              v-model="form.owner_id"
-              placeholder="请选择负责人"
-              filterable
-              :clearable="!lockOwnerForTeacher"
-              :disabled="lockOwnerForTeacher"
-              class="full-width"
-            >
-              <el-option
-                v-for="s in staffList"
-                :key="s.staff_id"
-                :label="s.name"
-                :value="s.staff_id"
+      <!-- 人员与周期 -->
+      <div class="form-section">
+        <div class="section-title">人员与周期</div>
+        <el-row :gutter="24">
+          <el-col :xs="24" :md="14">
+            <el-form-item prop="lead_owner_ids" class="form-item-tight-bottom">
+              <template #label>
+                <div class="label-stack">
+                  <span>负责人</span>
+                  <span class="field-hint">可多选；选中的第一项为主负责人</span>
+                </div>
+              </template>
+              <el-select
+                v-model="form.lead_owner_ids"
+                placeholder="请选择（至少一人）"
+                filterable
+                multiple
+                :collapse-tags="false"
+                class="full-width select-collaborators-multiline"
               >
-                <span class="opt-name">{{ s.name }}</span>
-                <span class="opt-dept">{{ s.department }}</span>
-              </el-option>
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="所属周期" prop="period_id">
-            <PeriodSelect
-              v-model="form.period_id"
-              :auto-select-current="!isEdit"
-              class="full-width"
-            />
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <!-- ②b 其他牵头主理人 + 辅助负责人 -->
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="其他牵头主理人">
-            <el-select
-              v-model="form.co_lead_ids"
-              placeholder="除主负责人外，可再选多名牵头（可选）"
-              filterable
-              multiple
-              collapse-tags
-              collapse-tags-tooltip
-              class="full-width select-collaborators-multiline"
-            >
-              <el-option
-                v-for="s in coLeadOptions"
-                :key="s.staff_id"
-                :label="s.name"
-                :value="s.staff_id"
-              >
-                <span class="opt-name">{{ s.name }}</span>
-                <span class="opt-dept">{{ s.department }}</span>
-              </el-option>
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="辅助负责人">
-            <el-select
-              v-model="form.auxiliary_owner_ids"
-              placeholder="可多选（可选）"
-              filterable
-              multiple
-              collapse-tags
-              collapse-tags-tooltip
-              class="full-width select-collaborators-multiline"
-            >
-              <el-option
-                v-for="s in auxiliaryOptions"
-                :key="s.staff_id"
-                :label="s.name"
-                :value="s.staff_id"
-              >
-                <span class="opt-name">{{ s.name }}</span>
-                <span class="opt-dept">{{ s.department }}</span>
-              </el-option>
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <!-- ③ 分类 + 开始/截止日期 -->
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="任务分类" prop="category">
-            <el-select
-              v-model="form.category"
-              placeholder="请选择分类"
-              clearable
-              class="full-width"
-            >
-              <el-option
-                v-for="cat in CATEGORIES"
-                :key="cat.name"
-                :label="cat.name"
-                :value="cat.name"
-              >
-                <span class="category-dot" :style="{ background: cat.color }" />
-                {{ cat.name }}
-              </el-option>
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <!-- 占位：日期放下面整行更宽敞 -->
-        </el-col>
-      </el-row>
-
-      <!-- ④ 开始日期 + 截止日期 -->
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="开始日期" prop="start_date">
-            <el-date-picker
-              v-model="form.start_date"
-              type="date"
-              placeholder="选择开始日期"
-              format="YYYY-MM-DD"
-              value-format="YYYY-MM-DD"
-              :disabled-date="disableAfterEnd"
-              class="full-width"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="截止日期" prop="end_date">
-            <el-date-picker
-              v-model="form.end_date"
-              type="date"
-              placeholder="选择截止日期"
-              format="YYYY-MM-DD"
-              value-format="YYYY-MM-DD"
-              :disabled-date="disableBeforeStart"
-              class="full-width"
-            />
-          </el-form-item>
-        </el-col>
-      </el-row>
-
-      <!-- ⑤ 优先级（RadioGroup） -->
-      <el-form-item label="优先级" prop="priority">
-        <el-radio-group v-model="form.priority" class="priority-group">
-          <el-radio-button value="high">
-            <el-icon class="priority-icon"><CaretTop /></el-icon> 高
-          </el-radio-button>
-          <el-radio-button value="medium">
-            <el-icon class="priority-icon"><Minus /></el-icon> 中
-          </el-radio-button>
-          <el-radio-button value="low">
-            <el-icon class="priority-icon"><CaretBottom /></el-icon> 低
-          </el-radio-button>
-        </el-radio-group>
-      </el-form-item>
-
-      <!-- ⑥ 协助人员 -->
-      <el-form-item label="协助人员">
-        <el-select
-          v-model="form.collaborator_ids"
-          placeholder="可多选（可选）"
-          filterable
-          multiple
-          :collapse-tags="false"
-          class="full-width select-collaborators-multiline"
-        >
-          <el-option
-            v-for="s in collaboratorOptions"
-            :key="s.staff_id"
-            :label="s.name"
-            :value="s.staff_id"
-          >
-            <span class="opt-name">{{ s.name }}</span>
-            <span class="opt-dept">{{ s.department }}</span>
-          </el-option>
-        </el-select>
-      </el-form-item>
-
-      <!-- ⑦ 任务描述 -->
-      <el-form-item label="任务描述" prop="description">
-        <el-input
-          v-model="form.description"
-          type="textarea"
-          :rows="3"
-          placeholder="请描述任务的目标和要求（可选）"
-          maxlength="500"
-          show-word-limit
-        />
-      </el-form-item>
-
-      <!-- ⑧ 编辑模式额外字段：状态 + 进度 -->
-      <template v-if="isEdit">
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="任务状态" prop="status">
-              <el-select v-model="form.status" class="full-width">
-                <el-option label="待开始" value="pending" />
-                <el-option label="进行中" value="in_progress" />
-                <el-option label="已完成" value="completed" />
-                <el-option label="已延期" value="delayed" />
-                <el-option label="已取消" value="cancelled" />
+                <el-option
+                  v-for="s in staffList"
+                  :key="s.staff_id"
+                  :label="s.name"
+                  :value="s.staff_id"
+                >
+                  <span class="opt-name">{{ s.name }}</span>
+                  <span class="opt-dept">{{ s.department }}</span>
+                </el-option>
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="完成进度" prop="progress">
-              <el-input-number
-                v-model="form.progress"
-                :min="0"
-                :max="100"
-                :step="5"
-                controls-position="right"
+          <el-col :xs="24" :md="10">
+            <el-form-item label="所属周期" prop="period_id" class="form-item-tight-bottom">
+              <PeriodSelect
+                v-model="form.period_id"
+                :auto-select-current="!isEdit"
                 class="full-width"
               />
             </el-form-item>
           </el-col>
         </el-row>
-      </template>
+        <el-form-item prop="helper_staff_ids" class="form-item-last-in-section">
+          <template #label>
+            <div class="label-stack">
+              <span>协助人员</span>
+              <span class="field-hint">可选；不含负责人，保存后为任务协助人</span>
+            </div>
+          </template>
+          <el-select
+            v-model="form.helper_staff_ids"
+            placeholder="可选，支持多人"
+            filterable
+            multiple
+            :collapse-tags="false"
+            class="full-width select-collaborators-multiline"
+          >
+            <el-option
+              v-for="s in helperStaffOptions"
+              :key="s.staff_id"
+              :label="s.name"
+              :value="s.staff_id"
+            >
+              <span class="opt-name">{{ s.name }}</span>
+              <span class="opt-dept">{{ s.department }}</span>
+            </el-option>
+          </el-select>
+        </el-form-item>
+      </div>
 
-      <!-- ⑨ 备注 -->
-      <el-form-item label="备注">
-        <el-input
-          v-model="form.remarks"
-          type="textarea"
-          :rows="2"
-          placeholder="其他说明（可选）"
-          maxlength="200"
-          show-word-limit
-        />
-      </el-form-item>
+      <!-- 时间、分类与优先级 -->
+      <div class="form-section">
+        <div class="section-title">时间、分类与优先级</div>
+        <el-row :gutter="24">
+          <el-col :xs="24" :sm="24" :md="8">
+            <el-form-item label="任务分类" prop="category" class="form-item-tight-bottom">
+              <el-select
+                v-model="form.category"
+                placeholder="请选择"
+                clearable
+                class="full-width"
+              >
+                <el-option
+                  v-for="cat in CATEGORIES"
+                  :key="cat.name"
+                  :label="cat.name"
+                  :value="cat.name"
+                >
+                  <span class="category-dot" :style="{ background: cat.color }" />
+                  {{ cat.name }}
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label="开始日期" prop="start_date" class="form-item-tight-bottom">
+              <el-date-picker
+                v-model="form.start_date"
+                type="date"
+                placeholder="开始日期"
+                format="YYYY-MM-DD"
+                value-format="YYYY-MM-DD"
+                :disabled-date="disableAfterEnd"
+                class="full-width"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8">
+            <el-form-item label="截止日期" prop="end_date" class="form-item-tight-bottom">
+              <el-date-picker
+                v-model="form.end_date"
+                type="date"
+                placeholder="截止日期"
+                format="YYYY-MM-DD"
+                value-format="YYYY-MM-DD"
+                :disabled-date="disableBeforeStart"
+                class="full-width"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="优先级" prop="priority" class="form-item-last-in-section">
+          <el-radio-group v-model="form.priority" class="priority-group priority-group--spaced">
+            <el-radio-button value="high">
+              <el-icon class="priority-icon"><CaretTop /></el-icon> 高
+            </el-radio-button>
+            <el-radio-button value="medium">
+              <el-icon class="priority-icon"><Minus /></el-icon> 中
+            </el-radio-button>
+            <el-radio-button value="low">
+              <el-icon class="priority-icon"><CaretBottom /></el-icon> 低
+            </el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+      </div>
+
+      <!-- 补充说明 -->
+      <div class="form-section">
+        <div class="section-title">补充说明</div>
+        <el-form-item label="任务描述" prop="description" class="form-item-tight-bottom">
+          <el-input
+            v-model="form.description"
+            type="textarea"
+            :rows="4"
+            placeholder="任务目标与要求（可选）"
+            maxlength="500"
+            show-word-limit
+          />
+        </el-form-item>
+
+        <template v-if="isEdit">
+          <el-row :gutter="24">
+            <el-col :xs="24" :md="12">
+              <el-form-item label="任务状态" prop="status" class="form-item-tight-bottom">
+                <el-select v-model="form.status" class="full-width">
+                  <el-option label="待开始" value="pending" />
+                  <el-option label="进行中" value="in_progress" />
+                  <el-option label="已完成" value="completed" />
+                  <el-option label="已延期" value="delayed" />
+                  <el-option label="已取消" value="cancelled" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :xs="24" :md="12">
+              <el-form-item label="完成进度 %" prop="progress" class="form-item-tight-bottom">
+                <el-input-number
+                  v-model="form.progress"
+                  :min="0"
+                  :max="100"
+                  :step="5"
+                  controls-position="right"
+                  class="full-width"
+                />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </template>
+
+        <el-form-item label="备注" class="form-item-last-in-section">
+          <el-input
+            v-model="form.remarks"
+            type="textarea"
+            :rows="3"
+            placeholder="其他说明（可选）"
+            maxlength="200"
+            show-word-limit
+          />
+        </el-form-item>
+      </div>
     </el-form>
 
     <!-- 编辑任务时：与列表/详情中一致，可管理本任务附件 -->
@@ -291,7 +252,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, watchEffect } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { CaretTop, Minus, CaretBottom } from '@element-plus/icons-vue'
 import PeriodSelect from '@/components/common/PeriodSelect.vue'
@@ -348,15 +309,13 @@ async function loadStaff() {
 function defaultForm() {
   return {
     task_name:        '',
-    owner_id:         null,
+    lead_owner_ids:   [],
+    helper_staff_ids: [],
     period_id:        null,
     category:         '',
     priority:         'medium',
     start_date:       '',
     end_date:         '',
-    collaborator_ids: [],
-    co_lead_ids:         [],
-    auxiliary_owner_ids: [],
     description:      '',
     status:           'pending',
     progress:         0,
@@ -366,62 +325,32 @@ function defaultForm() {
 
 const form = reactive(defaultForm())
 
-const coLeadOptions = computed(() =>
-  staffList.value.filter(
-    (s) =>
-      s.staff_id !== form.owner_id
-      && !(form.auxiliary_owner_ids || []).includes(s.staff_id),
-  ),
-)
-
-const auxiliaryOptions = computed(() =>
-  staffList.value.filter(
-    (s) =>
-      s.staff_id !== form.owner_id
-      && !(form.co_lead_ids || []).includes(s.staff_id),
-  ),
-)
-
-/** 协助人下拉：排除负责人、其他牵头、辅助负责人 */
-const collaboratorOptions = computed(() =>
-  staffList.value.filter(
-    (s) =>
-      s.staff_id !== form.owner_id
-      && !(form.co_lead_ids || []).includes(s.staff_id)
-      && !(form.auxiliary_owner_ids || []).includes(s.staff_id),
-  ),
-)
-
-watchEffect(() => {
-  const oid = form.owner_id
-  if (oid == null) return
-  if ((form.co_lead_ids || []).includes(oid)) {
-    form.co_lead_ids = form.co_lead_ids.filter((id) => id !== oid)
-  }
-  if ((form.auxiliary_owner_ids || []).includes(oid)) {
-    form.auxiliary_owner_ids = form.auxiliary_owner_ids.filter((id) => id !== oid)
-  }
+/** 协助人员候选：排除所有负责人（可多选）已选人员 */
+const helperStaffOptions = computed(() => {
+  const lead = new Set(form.lead_owner_ids || [])
+  return staffList.value.filter((s) => !lead.has(s.staff_id))
 })
 
 watch(
-  () => [...(form.co_lead_ids || [])],
+  () => [...(form.lead_owner_ids || [])],
   (ids) => {
-    const set = new Set(ids)
-    const next = (form.auxiliary_owner_ids || []).filter((i) => !set.has(i))
-    if (next.length !== (form.auxiliary_owner_ids || []).length) {
-      form.auxiliary_owner_ids = next
+    let leads = [...ids]
+    if (lockOwnerForTeacher.value) {
+      const sid = userStore.staffId
+      if (sid != null) {
+        const rest = leads.filter((id) => id !== sid)
+        leads = [sid, ...rest]
+      }
     }
-  },
-  { deep: true },
-)
-
-watch(
-  () => [...(form.auxiliary_owner_ids || [])],
-  (ids) => {
-    const set = new Set(ids)
-    const next = (form.co_lead_ids || []).filter((i) => !set.has(i))
-    if (next.length !== (form.co_lead_ids || []).length) {
-      form.co_lead_ids = next
+    const set = new Set(leads)
+    const helperNext = (form.helper_staff_ids || []).filter((i) => !set.has(i))
+    if (helperNext.length !== (form.helper_staff_ids || []).length) {
+      form.helper_staff_ids = helperNext
+    }
+    const same =
+      leads.length === ids.length && leads.every((v, i) => v === ids[i])
+    if (!same) {
+      form.lead_owner_ids = leads
     }
   },
   { deep: true },
@@ -439,10 +368,8 @@ const canManageTaskFiles = computed(() => {
   if (userStore.role === 'teacher') {
     const sid = userStore.staffId
     if (sid == null) return false
-    if (form.owner_id === sid) return true
-    if ((form.co_lead_ids || []).includes(sid)) return true
-    if ((form.auxiliary_owner_ids || []).includes(sid)) return true
-    return (form.collaborator_ids || []).includes(sid)
+    if ((form.lead_owner_ids || []).includes(sid)) return true
+    return (form.helper_staff_ids || []).includes(sid)
   }
   return false
 })
@@ -453,8 +380,23 @@ const rules = {
     { required: true, message: '请输入任务名称', trigger: 'blur' },
     { max: 100,       message: '任务名称不超过 100 字', trigger: 'blur' },
   ],
-  owner_id: [
-    { required: true, message: '请选择负责人', trigger: 'change' },
+  lead_owner_ids: [
+    {
+      type: 'array',
+      required: true,
+      message: '请至少选择一名负责人',
+      trigger: 'change',
+    },
+    {
+      validator: (_rule, val, callback) => {
+        if (!Array.isArray(val) || val.length < 1) {
+          callback(new Error('请至少选择一名负责人'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'change',
+    },
   ],
   category: [
     { required: true, message: '请选择任务分类', trigger: 'change' },
@@ -506,15 +448,24 @@ function fillForm(task) {
   Object.assign(form, defaultForm())
   if (!task) return
   form.task_name        = task.task_name    ?? ''
-  form.owner_id         = task.owner_id     ?? null
   form.period_id        = task.period_id    ?? null
   form.category         = task.category     ?? ''
   form.priority         = task.priority     ?? 'medium'
   form.start_date       = task.start_date   ?? ''
   form.end_date         = task.end_date     ?? ''
-  form.collaborator_ids = task.collaborators?.map(c => c.staff_id) ?? []
-  form.co_lead_ids         = task.co_leads?.map(c => c.staff_id) ?? []
-  form.auxiliary_owner_ids = task.auxiliary_owners?.map(c => c.staff_id) ?? []
+  const oid = task.owner_id ?? null
+  const coIds = task.co_leads?.map((c) => c.staff_id) ?? []
+  form.lead_owner_ids = oid != null ? [oid, ...coIds.filter((id) => id !== oid)] : [...coIds]
+  const auxIds = task.auxiliary_owners?.map((c) => c.staff_id) ?? []
+  const collIds = task.collaborators?.map((c) => c.staff_id) ?? []
+  const seen = new Set()
+  form.helper_staff_ids = []
+  for (const id of [...auxIds, ...collIds]) {
+    if (!seen.has(id)) {
+      seen.add(id)
+      form.helper_staff_ids.push(id)
+    }
+  }
   form.description      = task.description  ?? ''
   form.status           = task.status       ?? 'pending'
   form.progress         = task.progress     ?? 0
@@ -528,17 +479,23 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
+    const lead = form.lead_owner_ids || []
+    if (!lead.length) {
+      ElMessage.warning('请至少选择一名负责人')
+      submitting.value = false
+      return
+    }
     const payload = {
       task_name:        form.task_name.trim(),
-      owner_id:         form.owner_id,
+      owner_id:         lead[0],
+      co_lead_ids:      lead.slice(1),
+      collaborator_ids: form.helper_staff_ids || [],
+      auxiliary_owner_ids: [],
       period_id:        form.period_id   || null,
       category:         form.category,
       priority:         form.priority,
       start_date:       form.start_date,
       end_date:         form.end_date,
-      collaborator_ids: form.collaborator_ids,
-      co_lead_ids:         form.co_lead_ids || [],
-      auxiliary_owner_ids: form.auxiliary_owner_ids || [],
       description:      form.description  || null,
       remarks:          form.remarks      || null,
     }
@@ -579,48 +536,99 @@ watch(modelVisible, async (open) => {
   } else {
     Object.assign(form, defaultForm())
     if (userStore.role === 'teacher' && userStore.staffId != null) {
-      form.owner_id = userStore.staffId
+      form.lead_owner_ids = [userStore.staffId]
     }
   }
 })
 </script>
 
 <style lang="scss" scoped>
-// ── 弹窗：随视口略放大，避免大号字体下标签区过窄 ───────────────────────────────
+// ── 弹窗：加宽 + 正文可滚动，避免一屏塞满 ─────────────────────────────────────
 .task-form-dialog {
-  width: min(92vw, 760px) !important;
+  width: min(94vw, 920px) !important;
   max-width: 100%;
+
+  :deep(.el-dialog__header) {
+    padding: 18px 24px 12px;
+    margin-right: 0;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 8px 24px 4px;
+    max-height: min(78vh, 720px);
+    overflow-y: auto;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 16px 24px 20px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
 }
 
-// ── 表单 ──────────────────────────────────────────────────────────────────────
-.task-form {
-  padding: 4px 0 0;
+// ── 表单：标签置顶、分组留白 ─────────────────────────────────────────────────
+.task-form--relaxed {
+  padding: 0 0 8px;
 
-  /* label-width=auto 时仍保证标签单行、与控件垂直对齐（含必填星号） */
+  :deep(.el-form-item) {
+    margin-bottom: 20px;
+  }
+
   :deep(.el-form-item__label) {
-    white-space: nowrap;
-    line-height: var(--el-component-size);
-    height: var(--el-component-size);
-    align-items: center;
+    line-height: 1.35;
+    height: auto !important;
+    padding-bottom: 6px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
   }
 
   :deep(.el-form-item__content) {
-    align-items: center;
-  }
-
-  /* 多行控件（文本域、多选 select）与标签顶部对齐更自然 */
-  :deep(.el-form-item:has(textarea) .el-form-item__label),
-  :deep(.el-form-item:has(.select-collaborators-multiline) .el-form-item__label) {
-    align-items: flex-start;
-    padding-top: calc((var(--el-component-size) - 1em) / 2);
-    height: auto;
-    line-height: 1.4;
-  }
-
-  :deep(.el-form-item:has(textarea) .el-form-item__content),
-  :deep(.el-form-item:has(.select-collaborators-multiline) .el-form-item__content) {
     align-items: stretch;
   }
+
+  .form-item-tight-bottom {
+    margin-bottom: 16px;
+  }
+
+  .form-item-last-in-section {
+    margin-bottom: 0;
+  }
+}
+
+.form-section {
+  margin-bottom: 20px;
+  padding: 20px 22px 22px;
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+}
+
+.section-title {
+  margin: 0 0 18px;
+  padding-bottom: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.label-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.field-hint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--el-text-color-secondary);
+  line-height: 1.4;
 }
 
 .full-width { width: 100%; }
@@ -650,8 +658,8 @@ watch(modelVisible, async (open) => {
 
 /* 编辑弹窗内附件区 */
 .task-files-outer {
-  margin-top: 8px;
-  padding: 4px 0 8px;
+  margin: 16px 24px 0;
+  padding: 16px 0 8px;
   border-top: 1px dashed var(--el-border-color-lighter);
   max-height: min(50vh, 400px);
   overflow-y: auto;
@@ -681,12 +689,22 @@ watch(modelVisible, async (open) => {
 }
 
 // ── 优先级 RadioGroup ─────────────────────────────────────────────────────────
+.priority-group--spaced {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  :deep(.el-radio-button) {
+    margin-right: 0;
+  }
+}
+
 .priority-group {
   :deep(.el-radio-button__inner) {
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 8px 20px;
+    padding: 10px 22px;
     font-size: var(--el-font-size-base);
   }
 

@@ -58,8 +58,8 @@
             {{ task.owners_display || task.owner_name || '—' }}
           </el-descriptions-item>
 
-          <el-descriptions-item label="辅助负责人" :span="2">
-            {{ task.auxiliary_display || '—' }}
+          <el-descriptions-item label="协助人员" :span="2">
+            {{ task.helpers_display || '—' }}
           </el-descriptions-item>
 
           <el-descriptions-item label="任务分类" :span="2">
@@ -93,23 +93,6 @@
                 class="inline-progress"
               />
             </div>
-          </el-descriptions-item>
-
-          <!-- 协助人 -->
-          <el-descriptions-item label="协助人员" :span="4">
-            <template v-if="task.collaborators?.length">
-              <el-tag
-                v-for="c in task.collaborators"
-                :key="c.staff_id"
-                type="info"
-                effect="light"
-                size="small"
-                class="collab-tag"
-              >
-                {{ c.name }}
-              </el-tag>
-            </template>
-            <span v-else class="empty-val">—</span>
           </el-descriptions-item>
 
           <!-- 任务描述 -->

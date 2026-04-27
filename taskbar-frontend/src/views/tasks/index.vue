@@ -188,19 +188,19 @@
           </template>
         </el-table-column>
 
-        <!-- 辅助负责人 -->
+        <!-- 协助人员（含原辅助负责人 + 协助人） -->
         <el-table-column
-          label="辅助负责人"
-          prop="auxiliary_display"
-          column-key="auxiliary_display"
+          label="协助人员"
+          prop="helpers_display"
+          column-key="helpers_display"
           resizable
-          :width="colWidths.auxiliary_display"
+          :width="colWidths.helpers_display"
           :min-width="88"
           align="center"
           show-overflow-tooltip
         >
           <template #default="{ row }">
-            {{ row.auxiliary_display || '—' }}
+            {{ row.helpers_display || '—' }}
           </template>
         </el-table-column>
 
@@ -443,7 +443,7 @@ const COL_WIDTH_DEFAULTS = {
   period_name: 88,
   task_name:  220,
   owner_name: 120,
-  auxiliary_display: 110,
+  helpers_display: 110,
   end_date:   120,
   status:     95,
   progress:   140,

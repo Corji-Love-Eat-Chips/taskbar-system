@@ -286,14 +286,24 @@ async function getTaskList({
   const list = rows.map((r) => {
     const coList = coLeadMap[r.task_id] ?? []
     const auxList = auxMap[r.task_id] ?? []
+    const collabList = collabMap[r.task_id] ?? []
     const leadNames = [r.owner_name, ...coList.map((x) => x.name)].filter(Boolean)
+    const helperSeen = new Set()
+    const helperLabels = []
+    for (const x of [...auxList, ...collabList]) {
+      if (!helperSeen.has(x.staff_id)) {
+        helperSeen.add(x.staff_id)
+        helperLabels.push(x.name)
+      }
+    }
     return {
       ...fmtTask(r),
-      collaborators: collabMap[r.task_id] ?? [],
+      collaborators: collabList,
       co_leads: coList,
       auxiliary_owners: auxList,
       owners_display: leadNames.join('、') || '—',
       auxiliary_display: auxList.length ? auxList.map((x) => x.name).join('、') : '—',
+      helpers_display: helperLabels.length ? helperLabels.join('、') : '—',
     }
   })
 
@@ -336,6 +346,14 @@ async function getTaskById(id) {
     fetchAuxiliaryOwners(id),
   ])
   const leadNames = [row.owner_name, ...co_leads.map((x) => x.name)].filter(Boolean)
+  const helperSeen = new Set()
+  const helperLabels = []
+  for (const x of [...auxiliary_owners, ...collaborators]) {
+    if (!helperSeen.has(x.staff_id)) {
+      helperSeen.add(x.staff_id)
+      helperLabels.push(x.name)
+    }
+  }
   return {
     ...fmtTask(row),
     collaborators,
@@ -345,6 +363,7 @@ async function getTaskById(id) {
     auxiliary_display: auxiliary_owners.length
       ? auxiliary_owners.map((x) => x.name).join('、')
       : '—',
+    helpers_display: helperLabels.length ? helperLabels.join('、') : '—',
   }
 }
 
@@ -652,7 +671,7 @@ async function importTasksFromExcelBuffer(buffer, createdByUserId) {
     const r = records[i]
     const excelRow = i + 2
     const taskName = String(r['任务名称'] ?? '').trim()
-    const ownerCode = String(r['负责人工号'] ?? '').trim()
+    const ownerCodes = splitStaffCodes(r['负责人工号'])
     const periodName = String(r['周期名称'] ?? '').trim()
     const category = String(r['任务分类'] ?? '').trim()
     const startRaw = r['开始日期']
@@ -673,9 +692,14 @@ async function importTasksFromExcelBuffer(buffer, createdByUserId) {
     if (!taskName) errors.push({ row: excelRow, message: '任务名称不能为空' })
     else if (taskName.length > 100) errors.push({ row: excelRow, message: '任务名称最长 100 字' })
 
-    if (!ownerCode) errors.push({ row: excelRow, message: '负责人工号不能为空' })
-    else if (!codeToId.has(ownerCode)) {
-      errors.push({ row: excelRow, message: `负责人工号「${ownerCode}」不存在或不是在职人员` })
+    if (!ownerCodes.length) {
+      errors.push({ row: excelRow, message: '负责人工号不能为空（可填多个，用逗号或分号等分隔）' })
+    } else {
+      for (const cc of ownerCodes) {
+        if (!codeToId.has(cc)) {
+          errors.push({ row: excelRow, message: `负责人工号「${cc}」不存在或不是在职人员` })
+        }
+      }
     }
 
     let period_id = null
@@ -717,7 +741,8 @@ async function importTasksFromExcelBuffer(buffer, createdByUserId) {
       }
     }
 
-    const owner_id = codeToId.get(ownerCode) || 0
+    const owner_id = ownerCodes.length ? (codeToId.get(ownerCodes[0]) || 0) : 0
+    const co_from_owner_cell = ownerCodes.slice(1).map((cc) => codeToId.get(cc)).filter(Boolean)
     const co_lead_ids = []
     for (const cc of coLeadCodes) {
       if (!codeToId.has(cc)) {
@@ -726,9 +751,10 @@ async function importTasksFromExcelBuffer(buffer, createdByUserId) {
         co_lead_ids.push(codeToId.get(cc))
       }
     }
-    const co_unique = [...new Set(co_lead_ids)].filter((id) => id !== owner_id)
-    if (co_lead_ids.some((id) => id === owner_id)) {
-      errors.push({ row: excelRow, message: '其他牵头工号不能与负责人工号重复' })
+    const co_unique = [...new Set([...co_from_owner_cell, ...co_lead_ids])].filter((id) => id !== owner_id)
+    const dupInOwner = new Set(ownerCodes.slice(1))
+    if (ownerCodes.length > 1 && dupInOwner.has(ownerCodes[0])) {
+      errors.push({ row: excelRow, message: '负责人工号列表中主负责人（第一项）不能重复出现在后续工号中' })
     }
 
     const auxiliary_owner_ids = []

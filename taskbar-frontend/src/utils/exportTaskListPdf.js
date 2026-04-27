@@ -20,12 +20,12 @@ function buildTableRows(tasks, statusMap, priorityMap) {
         ? String(row.period_name).trim()
         : '—'
       const ownersText = row.owners_display || row.owner_name || '—'
-      const auxText = row.auxiliary_display || '—'
+      const helpersText = row.helpers_display || '—'
       return `<tr>
       <td>${escapeHtml(periodText)}</td>
       <td>${escapeHtml(row.task_name)}</td>
       <td>${escapeHtml(ownersText)}</td>
-      <td>${escapeHtml(auxText)}</td>
+      <td>${escapeHtml(helpersText)}</td>
       <td>${escapeHtml(row.end_date || '—')}</td>
       <td>${escapeHtml(statusText)}</td>
       <td>${escapeHtml(String(row.progress ?? 0))}%</td>
@@ -70,7 +70,7 @@ function buildDocumentHtml(tasks, meta, statusMap, priorityMap) {
   <div class="meta">${metaLine}</div>
   <table>
     <thead><tr>
-      <th>周期</th><th>任务名称</th><th>负责人</th><th>辅助负责人</th><th>截止日期</th><th>状态</th><th>进度</th><th>分类</th><th>优先级</th>
+      <th>周期</th><th>任务名称</th><th>负责人</th><th>协助人员</th><th>截止日期</th><th>状态</th><th>进度</th><th>分类</th><th>优先级</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>

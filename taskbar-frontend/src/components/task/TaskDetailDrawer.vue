@@ -38,7 +38,6 @@
             <span class="task-no">{{ task.task_no }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="牵头主理人">{{ task.owners_display || task.owner_name || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="辅助负责人">{{ task.auxiliary_display || '—' }}</el-descriptions-item>
           <el-descriptions-item label="所属周期">{{ task.period_name || '-' }}</el-descriptions-item>
           <el-descriptions-item label="优先级">
             <el-tag :type="PRIORITY_MAP[task.priority]?.type ?? 'info'" size="small" effect="plain">
@@ -104,14 +103,14 @@
         </div>
       </section>
 
-      <!-- 协助人 -->
-      <section v-if="task.collaborators?.length" class="detail-section">
+      <!-- 协助人员（辅助负责人 + 协助人，去重） -->
+      <section v-if="helperTags.length" class="detail-section">
         <div class="section-title">协助人员</div>
         <div class="tag-list">
           <el-tag
-            v-for="c in task.collaborators"
+            v-for="c in helperTags"
             :key="c.staff_id"
-            type="info"
+            :type="c.kind === 'aux' ? 'warning' : 'info'"
             effect="light"
           >{{ c.name }}</el-tag>
         </div>
@@ -232,6 +231,27 @@ function dateClass(endDate, status) {
 
 // ── 权限 ──────────────────────────────────────────────────────────────────────
 const canEdit = computed(() => userStore.isAdmin || userStore.isLeader)
+
+/** 协助人员展示：辅助负责人优先序，去重 staff_id */
+const helperTags = computed(() => {
+  const t = task.value
+  if (!t) return []
+  const seen = new Set()
+  const out = []
+  for (const c of t.auxiliary_owners || []) {
+    if (!seen.has(c.staff_id)) {
+      seen.add(c.staff_id)
+      out.push({ staff_id: c.staff_id, name: c.name, kind: 'aux' })
+    }
+  }
+  for (const c of t.collaborators || []) {
+    if (!seen.has(c.staff_id)) {
+      seen.add(c.staff_id)
+      out.push({ staff_id: c.staff_id, name: c.name, kind: 'collab' })
+    }
+  }
+  return out
+})
 
 function teacherIsTaskParticipant(t) {
   const sid = userStore.staffId

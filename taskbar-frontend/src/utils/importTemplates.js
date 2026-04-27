@@ -7,6 +7,7 @@ import { saveAs } from 'file-saver'
 // 与后端 staffService.importStaffFromExcelBuffer 一致：支持「手机」「邮箱」分列，也兼容仅填「联系方式」
 const STAFF_HEADERS = ['工号', '姓名', '性别', '部门', '职位', '手机', '邮箱', '状态']
 
+// 多人工号列（负责人、其他牵头、辅助负责人、协助人）：单元格内可用英文逗号、中文逗号、分号或空格分隔，如 23166,23167 或 23166；23167
 const TASK_HEADERS = [
   '任务名称',
   '负责人工号',
