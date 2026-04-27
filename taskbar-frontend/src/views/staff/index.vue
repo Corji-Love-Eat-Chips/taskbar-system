@@ -72,7 +72,6 @@
         row-key="staff_id"
         style="width:100%"
       >
-        <el-table-column label="工号" prop="staff_code" width="100" />
         <el-table-column label="姓名" prop="name" width="90" />
         <el-table-column label="性别" width="70">
           <template #default="{ row }">

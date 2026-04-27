@@ -137,10 +137,15 @@ async function updateStaff(staffId, fields) {
  */
 async function countActiveTasks(staffId) {
   const [[{ cnt }]] = await pool.query(
-    `SELECT COUNT(*) AS cnt FROM tasks
-      WHERE owner_id = ?
-        AND status NOT IN ('completed','cancelled')`,
-    [staffId],
+    `SELECT COUNT(DISTINCT t.task_id) AS cnt FROM tasks t
+      WHERE t.status NOT IN ('completed','cancelled')
+        AND (
+          t.owner_id = ?
+          OR EXISTS (SELECT 1 FROM task_co_leads cl WHERE cl.task_id = t.task_id AND cl.staff_id = ?)
+          OR EXISTS (SELECT 1 FROM task_auxiliary_owners ax WHERE ax.task_id = t.task_id AND ax.staff_id = ?)
+          OR EXISTS (SELECT 1 FROM task_collaborators tc WHERE tc.task_id = t.task_id AND tc.staff_id = ?)
+        )`,
+    [staffId, staffId, staffId, staffId],
   )
   return cnt
 }

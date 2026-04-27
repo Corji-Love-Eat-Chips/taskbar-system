@@ -53,9 +53,13 @@
             {{ task.period_name || '—' }}
           </el-descriptions-item>
 
-          <el-descriptions-item label="负责人" :span="2">
+          <el-descriptions-item label="牵头主理人" :span="2">
             <el-icon class="inline-icon"><User /></el-icon>
-            {{ task.owner_name }}
+            {{ task.owners_display || task.owner_name || '—' }}
+          </el-descriptions-item>
+
+          <el-descriptions-item label="辅助负责人" :span="2">
+            {{ task.auxiliary_display || '—' }}
           </el-descriptions-item>
 
           <el-descriptions-item label="任务分类" :span="2">

@@ -137,6 +137,22 @@
         @sort-change="onSortChange"
         @header-dragend="onHeaderDragEnd"
       >
+        <!-- 周期（与任务名称分列展示） -->
+        <el-table-column
+          label="周期"
+          prop="period_name"
+          column-key="period_name"
+          sortable="custom"
+          resizable
+          :width="colWidths.period_name"
+          :min-width="72"
+          align="center"
+        >
+          <template #default="{ row }">
+            {{ row.period_name || '—' }}
+          </template>
+        </el-table-column>
+
         <!-- 任务名称：点击查看详情 -->
         <el-table-column
           label="任务名称"
@@ -155,7 +171,7 @@
           </template>
         </el-table-column>
 
-        <!-- 负责人 -->
+        <!-- 负责人（含主负责人 + 其他牵头主理人） -->
         <el-table-column
           label="负责人"
           prop="owner_name"
@@ -163,9 +179,30 @@
           sortable="custom"
           resizable
           :width="colWidths.owner_name"
-          :min-width="72"
+          :min-width="100"
           align="center"
-        />
+          show-overflow-tooltip
+        >
+          <template #default="{ row }">
+            {{ row.owners_display || row.owner_name || '—' }}
+          </template>
+        </el-table-column>
+
+        <!-- 辅助负责人 -->
+        <el-table-column
+          label="辅助负责人"
+          prop="auxiliary_display"
+          column-key="auxiliary_display"
+          resizable
+          :width="colWidths.auxiliary_display"
+          :min-width="88"
+          align="center"
+          show-overflow-tooltip
+        >
+          <template #default="{ row }">
+            {{ row.auxiliary_display || '—' }}
+          </template>
+        </el-table-column>
 
         <!-- 截止日期 -->
         <el-table-column
@@ -403,8 +440,10 @@ const CATEGORY_COLOR_MAP = Object.fromEntries(CATEGORIES.map(c => [c.name, c.col
 // ── 表格列宽（localStorage）──────────────────────────────────────────────────
 const COL_WIDTH_STORAGE_KEY = 'taskbar_tasks_col_widths'
 const COL_WIDTH_DEFAULTS = {
+  period_name: 88,
   task_name:  220,
-  owner_name: 90,
+  owner_name: 120,
+  auxiliary_display: 110,
   end_date:   120,
   status:     95,
   progress:   140,

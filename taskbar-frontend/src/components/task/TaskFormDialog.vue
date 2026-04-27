@@ -67,6 +67,56 @@
         </el-col>
       </el-row>
 
+      <!-- ②b 其他牵头主理人 + 辅助负责人 -->
+      <el-row :gutter="16">
+        <el-col :span="12">
+          <el-form-item label="其他牵头主理人">
+            <el-select
+              v-model="form.co_lead_ids"
+              placeholder="除主负责人外，可再选多名牵头（可选）"
+              filterable
+              multiple
+              collapse-tags
+              collapse-tags-tooltip
+              class="full-width select-collaborators-multiline"
+            >
+              <el-option
+                v-for="s in coLeadOptions"
+                :key="s.staff_id"
+                :label="s.name"
+                :value="s.staff_id"
+              >
+                <span class="opt-name">{{ s.name }}</span>
+                <span class="opt-dept">{{ s.department }}</span>
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="辅助负责人">
+            <el-select
+              v-model="form.auxiliary_owner_ids"
+              placeholder="可多选（可选）"
+              filterable
+              multiple
+              collapse-tags
+              collapse-tags-tooltip
+              class="full-width select-collaborators-multiline"
+            >
+              <el-option
+                v-for="s in auxiliaryOptions"
+                :key="s.staff_id"
+                :label="s.name"
+                :value="s.staff_id"
+              >
+                <span class="opt-name">{{ s.name }}</span>
+                <span class="opt-dept">{{ s.department }}</span>
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-col>
+      </el-row>
+
       <!-- ③ 分类 + 开始/截止日期 -->
       <el-row :gutter="16">
         <el-col :span="12">
@@ -241,7 +291,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, watchEffect } from 'vue'
 import { ElMessage } from 'element-plus'
 import { CaretTop, Minus, CaretBottom } from '@element-plus/icons-vue'
 import PeriodSelect from '@/components/common/PeriodSelect.vue'
@@ -295,16 +345,6 @@ async function loadStaff() {
   }
 }
 
-/** 协助人下拉：排除当前已选的负责人 */
-const collaboratorOptions = computed(() =>
-  staffList.value.filter(s => s.staff_id !== form.owner_id),
-)
-
-// ── 表单数据 ──────────────────────────────────────────────────────────────────
-const formRef    = ref(null)
-const submitting  = ref(false)
-const detailLoading = ref(false)
-
 function defaultForm() {
   return {
     task_name:        '',
@@ -315,6 +355,8 @@ function defaultForm() {
     start_date:       '',
     end_date:         '',
     collaborator_ids: [],
+    co_lead_ids:         [],
+    auxiliary_owner_ids: [],
     description:      '',
     status:           'pending',
     progress:         0,
@@ -324,6 +366,72 @@ function defaultForm() {
 
 const form = reactive(defaultForm())
 
+const coLeadOptions = computed(() =>
+  staffList.value.filter(
+    (s) =>
+      s.staff_id !== form.owner_id
+      && !(form.auxiliary_owner_ids || []).includes(s.staff_id),
+  ),
+)
+
+const auxiliaryOptions = computed(() =>
+  staffList.value.filter(
+    (s) =>
+      s.staff_id !== form.owner_id
+      && !(form.co_lead_ids || []).includes(s.staff_id),
+  ),
+)
+
+/** 协助人下拉：排除负责人、其他牵头、辅助负责人 */
+const collaboratorOptions = computed(() =>
+  staffList.value.filter(
+    (s) =>
+      s.staff_id !== form.owner_id
+      && !(form.co_lead_ids || []).includes(s.staff_id)
+      && !(form.auxiliary_owner_ids || []).includes(s.staff_id),
+  ),
+)
+
+watchEffect(() => {
+  const oid = form.owner_id
+  if (oid == null) return
+  if ((form.co_lead_ids || []).includes(oid)) {
+    form.co_lead_ids = form.co_lead_ids.filter((id) => id !== oid)
+  }
+  if ((form.auxiliary_owner_ids || []).includes(oid)) {
+    form.auxiliary_owner_ids = form.auxiliary_owner_ids.filter((id) => id !== oid)
+  }
+})
+
+watch(
+  () => [...(form.co_lead_ids || [])],
+  (ids) => {
+    const set = new Set(ids)
+    const next = (form.auxiliary_owner_ids || []).filter((i) => !set.has(i))
+    if (next.length !== (form.auxiliary_owner_ids || []).length) {
+      form.auxiliary_owner_ids = next
+    }
+  },
+  { deep: true },
+)
+
+watch(
+  () => [...(form.auxiliary_owner_ids || [])],
+  (ids) => {
+    const set = new Set(ids)
+    const next = (form.co_lead_ids || []).filter((i) => !set.has(i))
+    if (next.length !== (form.co_lead_ids || []).length) {
+      form.co_lead_ids = next
+    }
+  },
+  { deep: true },
+)
+
+// ── 表单数据 ──────────────────────────────────────────────────────────────────
+const formRef    = ref(null)
+const submitting  = ref(false)
+const detailLoading = ref(false)
+
 /** 与任务详情抽屉一致：管理员/领导/负责人/协助人可上传、删除 */
 const canManageTaskFiles = computed(() => {
   if (!isEdit.value) return false
@@ -332,6 +440,8 @@ const canManageTaskFiles = computed(() => {
     const sid = userStore.staffId
     if (sid == null) return false
     if (form.owner_id === sid) return true
+    if ((form.co_lead_ids || []).includes(sid)) return true
+    if ((form.auxiliary_owner_ids || []).includes(sid)) return true
     return (form.collaborator_ids || []).includes(sid)
   }
   return false
@@ -403,6 +513,8 @@ function fillForm(task) {
   form.start_date       = task.start_date   ?? ''
   form.end_date         = task.end_date     ?? ''
   form.collaborator_ids = task.collaborators?.map(c => c.staff_id) ?? []
+  form.co_lead_ids         = task.co_leads?.map(c => c.staff_id) ?? []
+  form.auxiliary_owner_ids = task.auxiliary_owners?.map(c => c.staff_id) ?? []
   form.description      = task.description  ?? ''
   form.status           = task.status       ?? 'pending'
   form.progress         = task.progress     ?? 0
@@ -425,6 +537,8 @@ async function handleSubmit() {
       start_date:       form.start_date,
       end_date:         form.end_date,
       collaborator_ids: form.collaborator_ids,
+      co_lead_ids:         form.co_lead_ids || [],
+      auxiliary_owner_ids: form.auxiliary_owner_ids || [],
       description:      form.description  || null,
       remarks:          form.remarks      || null,
     }

@@ -2,7 +2,7 @@
  * taskService.js
  * 任务管理业务逻辑
  *
- * 涉及表：tasks、task_collaborators、staff、periods
+ * 涉及表：tasks、task_collaborators、task_co_leads、task_auxiliary_owners、staff、periods
  */
 
 const pool = require('../config/database')
@@ -61,6 +61,75 @@ async function fetchCollaborators(taskId) {
   return rows
 }
 
+function normalizeStaffIdArray(arr) {
+  if (!Array.isArray(arr)) return []
+  return [...new Set(arr.map(Number).filter((n) => Number.isInteger(n) && n > 0))]
+}
+
+/** 主负责人、其他牵头、辅助负责人、协助人四者互斥 */
+function assertResponsibleStaffDisjoint(ownerId, coLeadIds, auxIds, collabIds) {
+  const owner = Number(ownerId)
+  if (!Number.isInteger(owner) || owner < 1) return
+  const co = normalizeStaffIdArray(coLeadIds)
+  const aux = normalizeStaffIdArray(auxIds)
+  const collab = normalizeStaffIdArray(collabIds)
+  if (co.some((id) => id === owner)) {
+    throw createError('其他牵头主理人不能包含主负责人', 400)
+  }
+  const leadSet = new Set([owner, ...co])
+  for (const a of aux) {
+    if (leadSet.has(a)) throw createError('辅助负责人不能与牵头主理人重复', 400)
+  }
+  const allLead = new Set([...leadSet, ...aux])
+  for (const c of collab) {
+    if (allLead.has(c)) throw createError('协助人员不能与负责人或辅助负责人重复', 400)
+  }
+}
+
+async function fetchCoLeads(taskId) {
+  const [rows] = await pool.query(
+    `SELECT cl.staff_id, s.name
+       FROM task_co_leads cl
+       JOIN staff s ON s.staff_id = cl.staff_id
+      WHERE cl.task_id = ?
+      ORDER BY cl.sort_order ASC, cl.id ASC`,
+    [taskId],
+  )
+  return rows
+}
+
+async function fetchAuxiliaryOwners(taskId) {
+  const [rows] = await pool.query(
+    `SELECT ax.staff_id, s.name
+       FROM task_auxiliary_owners ax
+       JOIN staff s ON s.staff_id = ax.staff_id
+      WHERE ax.task_id = ?
+      ORDER BY ax.sort_order ASC, ax.id ASC`,
+    [taskId],
+  )
+  return rows
+}
+
+async function _setCoLeads(conn, taskId, staffIds) {
+  const unique = normalizeStaffIdArray(staffIds)
+  if (!unique.length) return
+  const rows = unique.map((sid, i) => [taskId, sid, i])
+  await conn.query(
+    'INSERT INTO task_co_leads (task_id, staff_id, sort_order) VALUES ?',
+    [rows],
+  )
+}
+
+async function _setAuxiliaryOwners(conn, taskId, staffIds) {
+  const unique = normalizeStaffIdArray(staffIds)
+  if (!unique.length) return
+  const rows = unique.map((sid, i) => [taskId, sid, i])
+  await conn.query(
+    'INSERT INTO task_auxiliary_owners (task_id, staff_id, sort_order) VALUES ?',
+    [rows],
+  )
+}
+
 // ─── 一、任务列表 ─────────────────────────────────────────────────────────────
 
 /**
@@ -84,6 +153,7 @@ async function fetchCollaborators(taskId) {
  * }} params
  */
 const SORT_COLUMNS = {
+  period_name: 'p.period_name',
   task_name: 't.task_name',
   owner_name: 's.name',
   end_date: 't.end_date',
@@ -113,7 +183,7 @@ async function getTaskList({
   const offset = (Number(page) - 1) * Number(pageSize)
   const cond = []; const vals = []
 
-  // ── 角色可见范围（教师：负责人 OR 协助人）────────────────────────────────
+  // ── 角色可见范围（教师：主负责人 / 其他牵头 / 辅助负责人 / 协助人）──────────
   if (viewer && viewer.role === 'teacher') {
     const sid = viewer.staffId
     if (!sid) {
@@ -121,18 +191,28 @@ async function getTaskList({
     } else {
       cond.push(`(
         t.owner_id = ?
+        OR EXISTS (SELECT 1 FROM task_co_leads cl WHERE cl.task_id = t.task_id AND cl.staff_id = ?)
+        OR EXISTS (SELECT 1 FROM task_auxiliary_owners ax WHERE ax.task_id = t.task_id AND ax.staff_id = ?)
         OR EXISTS (
           SELECT 1 FROM task_collaborators tc
           WHERE tc.task_id = t.task_id AND tc.staff_id = ?
         )
       )`)
-      vals.push(sid, sid)
+      vals.push(sid, sid, sid, sid)
     }
   }
   // admin / leader / 未传 viewer：不加额外条件（由路由层保证已登录）
 
   if (period_id) { cond.push('t.period_id = ?');        vals.push(Number(period_id)) }
-  if (owner_id)  { cond.push('t.owner_id = ?');          vals.push(Number(owner_id)) }
+  if (owner_id) {
+    const oid = Number(owner_id)
+    cond.push(`(
+      t.owner_id = ?
+      OR EXISTS (SELECT 1 FROM task_co_leads cl WHERE cl.task_id = t.task_id AND cl.staff_id = ?)
+      OR EXISTS (SELECT 1 FROM task_auxiliary_owners ax WHERE ax.task_id = t.task_id AND ax.staff_id = ?)
+    )`)
+    vals.push(oid, oid, oid)
+  }
   if (category)  { cond.push('t.category = ?');          vals.push(category) }
   if (status)    { cond.push('t.status = ?');             vals.push(status) }
   if (keyword)   { cond.push('t.task_name LIKE ?');       vals.push(`%${keyword}%`) }
@@ -160,9 +240,11 @@ async function getTaskList({
     [...vals, Number(pageSize), offset],
   )
 
-  // 批量查协助人（IN 一次查完，避免 N+1）
+  // 批量查协助人 / 其他牵头 / 辅助负责人（IN 一次，避免 N+1）
   const taskIds = rows.map(r => r.task_id)
   let collabMap = {}
+  let coLeadMap = {}
+  let auxMap = {}
   if (taskIds.length) {
     const [collabs] = await pool.query(
       `SELECT tc.task_id, tc.staff_id, s.name
@@ -175,12 +257,45 @@ async function getTaskList({
       if (!collabMap[c.task_id]) collabMap[c.task_id] = []
       collabMap[c.task_id].push({ staff_id: c.staff_id, name: c.name })
     }
+    const [coLeads] = await pool.query(
+      `SELECT cl.task_id, cl.staff_id, s.name
+         FROM task_co_leads cl
+         JOIN staff s ON s.staff_id = cl.staff_id
+        WHERE cl.task_id IN (?)
+        ORDER BY cl.task_id ASC, cl.sort_order ASC, cl.id ASC`,
+      [taskIds],
+    )
+    for (const c of coLeads) {
+      if (!coLeadMap[c.task_id]) coLeadMap[c.task_id] = []
+      coLeadMap[c.task_id].push({ staff_id: c.staff_id, name: c.name })
+    }
+    const [auxRows] = await pool.query(
+      `SELECT ax.task_id, ax.staff_id, s.name
+         FROM task_auxiliary_owners ax
+         JOIN staff s ON s.staff_id = ax.staff_id
+        WHERE ax.task_id IN (?)
+        ORDER BY ax.task_id ASC, ax.sort_order ASC, ax.id ASC`,
+      [taskIds],
+    )
+    for (const a of auxRows) {
+      if (!auxMap[a.task_id]) auxMap[a.task_id] = []
+      auxMap[a.task_id].push({ staff_id: a.staff_id, name: a.name })
+    }
   }
 
-  const list = rows.map(r => ({
-    ...fmtTask(r),
-    collaborators: collabMap[r.task_id] ?? [],
-  }))
+  const list = rows.map((r) => {
+    const coList = coLeadMap[r.task_id] ?? []
+    const auxList = auxMap[r.task_id] ?? []
+    const leadNames = [r.owner_name, ...coList.map((x) => x.name)].filter(Boolean)
+    return {
+      ...fmtTask(r),
+      collaborators: collabMap[r.task_id] ?? [],
+      co_leads: coList,
+      auxiliary_owners: auxList,
+      owners_display: leadNames.join('、') || '—',
+      auxiliary_display: auxList.length ? auxList.map((x) => x.name).join('、') : '—',
+    }
+  })
 
   return {
     list,
@@ -215,8 +330,22 @@ async function getTaskById(id) {
   )
   if (!row) return null
 
-  const collaborators = await fetchCollaborators(id)
-  return { ...fmtTask(row), collaborators }
+  const [collaborators, co_leads, auxiliary_owners] = await Promise.all([
+    fetchCollaborators(id),
+    fetchCoLeads(id),
+    fetchAuxiliaryOwners(id),
+  ])
+  const leadNames = [row.owner_name, ...co_leads.map((x) => x.name)].filter(Boolean)
+  return {
+    ...fmtTask(row),
+    collaborators,
+    co_leads,
+    auxiliary_owners,
+    owners_display: leadNames.join('、') || '—',
+    auxiliary_display: auxiliary_owners.length
+      ? auxiliary_owners.map((x) => x.name).join('、')
+      : '—',
+  }
 }
 
 // ─── 三、新增任务 ─────────────────────────────────────────────────────────────
@@ -240,6 +369,7 @@ async function getTaskById(id) {
 async function createTask(data, createdBy) {
   const {
     task_name, period_id, owner_id, collaborator_ids = [],
+    co_lead_ids = [], auxiliary_owner_ids = [],
     description, priority = 'medium', category,
     start_date, end_date, remarks,
   } = data
@@ -247,6 +377,11 @@ async function createTask(data, createdBy) {
   if (new Date(start_date) > new Date(end_date)) {
     throw createError('开始日期不能晚于结束日期', 400)
   }
+
+  const co = normalizeStaffIdArray(co_lead_ids)
+  const aux = normalizeStaffIdArray(auxiliary_owner_ids)
+  const collab = normalizeStaffIdArray(collaborator_ids)
+  assertResponsibleStaffDisjoint(owner_id, co, aux, collab)
 
   const conn = await pool.getConnection()
   try {
@@ -266,10 +401,9 @@ async function createTask(data, createdBy) {
 
     const taskId = result.insertId
 
-    // 写入协助人
-    if (collaborator_ids.length) {
-      await _setCollaborators(conn, taskId, collaborator_ids)
-    }
+    if (co.length) await _setCoLeads(conn, taskId, co)
+    if (aux.length) await _setAuxiliaryOwners(conn, taskId, aux)
+    if (collab.length) await _setCollaborators(conn, taskId, collab)
 
     await conn.commit()
     return getTaskById(taskId)
@@ -290,6 +424,18 @@ async function createTask(data, createdBy) {
 async function updateTask(id, data) {
   const existing = await getTaskById(id)
   if (!existing) throw createError('任务不存在', 404)
+
+  const nextOwner = data.owner_id !== undefined ? data.owner_id : existing.owner_id
+  const nextCo = data.co_lead_ids !== undefined
+    ? normalizeStaffIdArray(data.co_lead_ids)
+    : (existing.co_leads || []).map((c) => c.staff_id)
+  const nextAux = data.auxiliary_owner_ids !== undefined
+    ? normalizeStaffIdArray(data.auxiliary_owner_ids)
+    : (existing.auxiliary_owners || []).map((c) => c.staff_id)
+  const nextCollab = data.collaborator_ids !== undefined
+    ? normalizeStaffIdArray(data.collaborator_ids)
+    : (existing.collaborators || []).map((c) => c.staff_id)
+  assertResponsibleStaffDisjoint(nextOwner, nextCo, nextAux, nextCollab)
 
   // 校验进度范围
   if (data.progress != null) {
@@ -327,9 +473,17 @@ async function updateTask(id, data) {
     // 协助人整体替换
     if (data.collaborator_ids !== undefined) {
       await conn.query('DELETE FROM task_collaborators WHERE task_id = ?', [id])
-      if (data.collaborator_ids.length) {
-        await _setCollaborators(conn, id, data.collaborator_ids)
-      }
+      if (nextCollab.length) await _setCollaborators(conn, id, nextCollab)
+    }
+
+    if (data.co_lead_ids !== undefined) {
+      await conn.query('DELETE FROM task_co_leads WHERE task_id = ?', [id])
+      if (nextCo.length) await _setCoLeads(conn, id, nextCo)
+    }
+
+    if (data.auxiliary_owner_ids !== undefined) {
+      await conn.query('DELETE FROM task_auxiliary_owners WHERE task_id = ?', [id])
+      if (nextAux.length) await _setAuxiliaryOwners(conn, id, nextAux)
     }
 
     await conn.commit()
@@ -509,6 +663,12 @@ async function importTasksFromExcelBuffer(buffer, createdByUserId) {
     const description = String(r['任务描述'] ?? '').trim() || null
     const remarks = String(r['备注'] ?? '').trim() || null
     const collabCodes = splitStaffCodes(r['协助人工号'])
+    const coLeadCodes = headerKeys.includes('其他牵头工号')
+      ? splitStaffCodes(r['其他牵头工号'])
+      : []
+    const auxCodes = headerKeys.includes('辅助负责人工号')
+      ? splitStaffCodes(r['辅助负责人工号'])
+      : []
 
     if (!taskName) errors.push({ row: excelRow, message: '任务名称不能为空' })
     else if (taskName.length > 100) errors.push({ row: excelRow, message: '任务名称最长 100 字' })
@@ -558,14 +718,57 @@ async function importTasksFromExcelBuffer(buffer, createdByUserId) {
     }
 
     const owner_id = codeToId.get(ownerCode) || 0
+    const co_lead_ids = []
+    for (const cc of coLeadCodes) {
+      if (!codeToId.has(cc)) {
+        errors.push({ row: excelRow, message: `其他牵头工号「${cc}」不存在或不是在职人员` })
+      } else {
+        co_lead_ids.push(codeToId.get(cc))
+      }
+    }
+    const co_unique = [...new Set(co_lead_ids)].filter((id) => id !== owner_id)
+    if (co_lead_ids.some((id) => id === owner_id)) {
+      errors.push({ row: excelRow, message: '其他牵头工号不能与负责人工号重复' })
+    }
+
+    const auxiliary_owner_ids = []
+    for (const cc of auxCodes) {
+      if (!codeToId.has(cc)) {
+        errors.push({ row: excelRow, message: `辅助负责人工号「${cc}」不存在或不是在职人员` })
+      } else {
+        auxiliary_owner_ids.push(codeToId.get(cc))
+      }
+    }
+    const aux_unique = [...new Set(auxiliary_owner_ids)]
+    const leadSet = new Set([owner_id, ...co_unique])
+    for (const sid of aux_unique) {
+      if (leadSet.has(sid)) {
+        errors.push({ row: excelRow, message: '辅助负责人不能与牵头主理人重复' })
+        break
+      }
+    }
+
     const collaborator_ids = []
+    const auxSet = new Set(aux_unique)
     for (const cc of collabCodes) {
       if (!codeToId.has(cc)) {
         errors.push({ row: excelRow, message: `协助人工号「${cc}」不存在或不是在职人员` })
       } else {
         const sid = codeToId.get(cc)
-        if (sid !== owner_id) collaborator_ids.push(sid)
+        if (leadSet.has(sid)) {
+          errors.push({ row: excelRow, message: `协助人工号「${cc}」不能与牵头主理人重复` })
+        } else if (auxSet.has(sid)) {
+          errors.push({ row: excelRow, message: `协助人工号「${cc}」不能与辅助负责人重复` })
+        } else {
+          collaborator_ids.push(sid)
+        }
       }
+    }
+
+    try {
+      assertResponsibleStaffDisjoint(owner_id, co_unique, aux_unique, collaborator_ids)
+    } catch (e) {
+      errors.push({ row: excelRow, message: e.message })
     }
 
     normalized.push({
@@ -579,6 +782,8 @@ async function importTasksFromExcelBuffer(buffer, createdByUserId) {
       priority,
       description,
       remarks,
+      co_lead_ids: co_unique,
+      auxiliary_owner_ids: aux_unique,
       collaborator_ids,
     })
   }
@@ -623,6 +828,10 @@ async function importTasksFromExcelBuffer(buffer, createdByUserId) {
           row.start_date, row.end_date, row.remarks, createdByUserId],
       )
       const taskId = result.insertId
+      if (row.co_lead_ids.length) await _setCoLeads(conn, taskId, row.co_lead_ids)
+      if (row.auxiliary_owner_ids.length) {
+        await _setAuxiliaryOwners(conn, taskId, row.auxiliary_owner_ids)
+      }
       if (row.collaborator_ids.length) {
         await _setCollaborators(conn, taskId, row.collaborator_ids)
       }

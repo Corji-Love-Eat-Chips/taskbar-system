@@ -7,7 +7,7 @@ const pool = require('../config/database')
 
 /**
  * @param {number} taskId
- * @returns {Promise<{ task_id: number, owner_id: number, collabIds: number[] }|null>}
+ * @returns {Promise<{ task_id: number, owner_id: number, collabIds: number[], coLeadIds: number[], auxiliaryIds: number[] }|null>}
  */
 async function getTaskParticipation(taskId) {
   const [[task]] = await pool.query(
@@ -19,16 +19,26 @@ async function getTaskParticipation(taskId) {
     'SELECT staff_id FROM task_collaborators WHERE task_id = ?',
     [taskId],
   )
+  const [coLeads] = await pool.query(
+    'SELECT staff_id FROM task_co_leads WHERE task_id = ?',
+    [taskId],
+  )
+  const [aux] = await pool.query(
+    'SELECT staff_id FROM task_auxiliary_owners WHERE task_id = ?',
+    [taskId],
+  )
   return {
     task_id: task.task_id,
     owner_id: task.owner_id,
     collabIds: collabs.map((c) => c.staff_id),
+    coLeadIds: coLeads.map((c) => c.staff_id),
+    auxiliaryIds: aux.map((c) => c.staff_id),
   }
 }
 
 /**
  * @param {{ role: string, staffId: number|null }} user  req.currentUser
- * @param {{ owner_id: number, collabIds: number[] }} ctx
+ * @param {{ owner_id: number, collabIds: number[], coLeadIds: number[], auxiliaryIds: number[] }} ctx
  */
 function userCanAccessTask(user, ctx) {
   if (!ctx) return false
@@ -37,6 +47,8 @@ function userCanAccessTask(user, ctx) {
     const sid = user.staffId
     if (sid == null) return false
     if (ctx.owner_id === sid) return true
+    if (ctx.coLeadIds.includes(sid)) return true
+    if (ctx.auxiliaryIds.includes(sid)) return true
     return ctx.collabIds.includes(sid)
   }
   return false

@@ -14,6 +14,8 @@ USE taskbar;
 DROP TABLE IF EXISTS todo_shares;
 DROP TABLE IF EXISTS meeting_participants;
 DROP TABLE IF EXISTS todos;
+DROP TABLE IF EXISTS task_auxiliary_owners;
+DROP TABLE IF EXISTS task_co_leads;
 DROP TABLE IF EXISTS task_collaborators;
 DROP TABLE IF EXISTS tasks;
 DROP TABLE IF EXISTS meetings;
@@ -105,6 +107,28 @@ CREATE TABLE task_collaborators (
     FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
     FOREIGN KEY (staff_id) REFERENCES staff(staff_id),
     UNIQUE KEY uk_task_staff (task_id, staff_id)
+);
+
+CREATE TABLE task_co_leads (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    task_id INT NOT NULL,
+    staff_id INT NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_task_co_lead (task_id, staff_id),
+    FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
+    FOREIGN KEY (staff_id) REFERENCES staff(staff_id)
+);
+
+CREATE TABLE task_auxiliary_owners (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    task_id INT NOT NULL,
+    staff_id INT NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_task_aux_owner (task_id, staff_id),
+    FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
+    FOREIGN KEY (staff_id) REFERENCES staff(staff_id)
 );
 
 CREATE TABLE todos (

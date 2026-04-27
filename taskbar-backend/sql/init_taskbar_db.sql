@@ -18,6 +18,8 @@ DROP TABLE IF EXISTS todo_shares;
 DROP TABLE IF EXISTS meeting_participants;
 DROP TABLE IF EXISTS todos;
 DROP TABLE IF EXISTS task_files;
+DROP TABLE IF EXISTS task_auxiliary_owners;
+DROP TABLE IF EXISTS task_co_leads;
 DROP TABLE IF EXISTS task_collaborators;
 DROP TABLE IF EXISTS tasks;
 DROP TABLE IF EXISTS meetings;
@@ -133,6 +135,31 @@ CREATE TABLE task_collaborators (
     CONSTRAINT fk_tc_task FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
     CONSTRAINT fk_tc_staff FOREIGN KEY (staff_id) REFERENCES staff(staff_id)
 ) COMMENT='任务协助人';
+
+-- =============================================================================
+-- 6a. task_co_leads / task_auxiliary_owners（多牵头主理人、辅助负责人）
+-- =============================================================================
+CREATE TABLE task_co_leads (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    task_id INT NOT NULL,
+    staff_id INT NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_task_co_lead (task_id, staff_id),
+    CONSTRAINT fk_tcl_task FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
+    CONSTRAINT fk_tcl_staff FOREIGN KEY (staff_id) REFERENCES staff(staff_id)
+) COMMENT='任务其他牵头主理人（不含 tasks.owner_id）';
+
+CREATE TABLE task_auxiliary_owners (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    task_id INT NOT NULL,
+    staff_id INT NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_task_aux_owner (task_id, staff_id),
+    CONSTRAINT fk_tao_task FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
+    CONSTRAINT fk_tao_staff FOREIGN KEY (staff_id) REFERENCES staff(staff_id)
+) COMMENT='任务辅助负责人';
 
 -- =============================================================================
 -- 6b. task_files（任务附件：每任务独立目录，见应用层 uploads/tasks/{task_id}/）

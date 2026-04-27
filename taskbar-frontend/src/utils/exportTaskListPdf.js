@@ -16,9 +16,16 @@ function buildTableRows(tasks, statusMap, priorityMap) {
     .map((row) => {
       const statusText = statusMap[row.status]?.text ?? row.status ?? '—'
       const priorityText = priorityMap[row.priority]?.text ?? '—'
+      const periodText = row.period_name != null && String(row.period_name).trim()
+        ? String(row.period_name).trim()
+        : '—'
+      const ownersText = row.owners_display || row.owner_name || '—'
+      const auxText = row.auxiliary_display || '—'
       return `<tr>
+      <td>${escapeHtml(periodText)}</td>
       <td>${escapeHtml(row.task_name)}</td>
-      <td>${escapeHtml(row.owner_name || '—')}</td>
+      <td>${escapeHtml(ownersText)}</td>
+      <td>${escapeHtml(auxText)}</td>
       <td>${escapeHtml(row.end_date || '—')}</td>
       <td>${escapeHtml(statusText)}</td>
       <td>${escapeHtml(String(row.progress ?? 0))}%</td>
@@ -49,19 +56,21 @@ function buildDocumentHtml(tasks, meta, statusMap, priorityMap) {
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   th, td { border: 1px solid #e5e7eb; padding: 6px 8px; text-align: left; word-break: break-word; }
   th { background: #f3f4f6; font-weight: 600; font-size: 11px; }
-  th:nth-child(1), td:nth-child(1) { width: 22%; }
-  th:nth-child(2), td:nth-child(2) { width: 9%; }
-  th:nth-child(3), td:nth-child(3) { width: 10%; }
-  th:nth-child(4), td:nth-child(4) { width: 9%; }
-  th:nth-child(5), td:nth-child(5) { width: 8%; }
-  th:nth-child(6), td:nth-child(6) { width: 12%; }
-  th:nth-child(7), td:nth-child(7) { width: 8%; }
+  th:nth-child(1), td:nth-child(1) { width: 8%; }
+  th:nth-child(2), td:nth-child(2) { width: 17%; }
+  th:nth-child(3), td:nth-child(3) { width: 11%; }
+  th:nth-child(4), td:nth-child(4) { width: 10%; }
+  th:nth-child(5), td:nth-child(5) { width: 9%; }
+  th:nth-child(6), td:nth-child(6) { width: 8%; }
+  th:nth-child(7), td:nth-child(7) { width: 7%; }
+  th:nth-child(8), td:nth-child(8) { width: 10%; }
+  th:nth-child(9), td:nth-child(9) { width: 7%; }
 </style></head><body>
   <h1>任务列表</h1>
   <div class="meta">${metaLine}</div>
   <table>
     <thead><tr>
-      <th>任务名称</th><th>负责人</th><th>截止日期</th><th>状态</th><th>进度</th><th>分类</th><th>优先级</th>
+      <th>周期</th><th>任务名称</th><th>负责人</th><th>辅助负责人</th><th>截止日期</th><th>状态</th><th>进度</th><th>分类</th><th>优先级</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>

@@ -39,6 +39,7 @@ const TASK_STATUSES = ['pending', 'in_progress', 'completed', 'delayed', 'cancel
 const TASK_PRIORITIES = ['high', 'medium', 'low']
 const TASK_SORT_BY = [
   'task_id',
+  'period_name',
   'task_name',
   'owner_name',
   'end_date',
@@ -137,6 +138,16 @@ router.post(
       .isArray().withMessage('collaborator_ids 必须为数组')
       .custom(ids => ids.every(id => Number.isInteger(Number(id)) && Number(id) > 0))
       .withMessage('collaborator_ids 包含无效的人员ID'),
+    body('co_lead_ids')
+      .optional()
+      .isArray().withMessage('co_lead_ids 必须为数组')
+      .custom(ids => ids.every(id => Number.isInteger(Number(id)) && Number(id) > 0))
+      .withMessage('co_lead_ids 包含无效的人员ID'),
+    body('auxiliary_owner_ids')
+      .optional()
+      .isArray().withMessage('auxiliary_owner_ids 必须为数组')
+      .custom(ids => ids.every(id => Number.isInteger(Number(id)) && Number(id) > 0))
+      .withMessage('auxiliary_owner_ids 包含无效的人员ID'),
     body('progress')
       .optional()
       .isInt({ min: 0, max: 100 }).withMessage('进度必须在 0-100 之间'),
@@ -173,6 +184,12 @@ router.put(
     body('collaborator_ids')
       .optional()
       .isArray().withMessage('collaborator_ids 必须为数组'),
+    body('co_lead_ids')
+      .optional()
+      .isArray().withMessage('co_lead_ids 必须为数组'),
+    body('auxiliary_owner_ids')
+      .optional()
+      .isArray().withMessage('auxiliary_owner_ids 必须为数组'),
   ],
   asyncHandler(ctrl.update),
 )

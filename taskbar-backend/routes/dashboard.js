@@ -40,12 +40,14 @@ router.get('/stats', asyncHandler(async (req, res) => {
       WHERE t.status != 'cancelled'
         AND (
           t.owner_id = ?
+          OR EXISTS (SELECT 1 FROM task_co_leads cl WHERE cl.task_id = t.task_id AND cl.staff_id = ?)
+          OR EXISTS (SELECT 1 FROM task_auxiliary_owners ax WHERE ax.task_id = t.task_id AND ax.staff_id = ?)
           OR EXISTS (
             SELECT 1 FROM task_collaborators tc
              WHERE tc.task_id = t.task_id AND tc.staff_id = ?
           )
         )
-    `, [staffId, staffId])
+    `, [staffId, staffId, staffId, staffId])
   }
 
   // 待办统计（只看自己）
@@ -119,6 +121,8 @@ router.get('/home', asyncHandler(async (req, res) => {
        WHERE t.status IN ('pending','in_progress')
          AND (
            t.owner_id = ?
+           OR EXISTS (SELECT 1 FROM task_co_leads cl WHERE cl.task_id = t.task_id AND cl.staff_id = ?)
+           OR EXISTS (SELECT 1 FROM task_auxiliary_owners ax WHERE ax.task_id = t.task_id AND ax.staff_id = ?)
            OR EXISTS (
              SELECT 1 FROM task_collaborators tc
               WHERE tc.task_id = t.task_id AND tc.staff_id = ?
@@ -126,7 +130,7 @@ router.get('/home', asyncHandler(async (req, res) => {
          )
        ORDER BY t.end_date ASC
        LIMIT 5
-    `, [staffId, staffId])
+    `, [staffId, staffId, staffId, staffId])
   }
 
   // ── 即将开始的会议（最多3条）────────────────────────────────────────────────

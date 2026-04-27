@@ -164,9 +164,15 @@ async function deleteUser(userId, operatorId) {
   // 检查是否是进行中任务的负责人
   if (user.staff_id) {
     const [[{ taskCnt }]] = await pool.query(
-      `SELECT COUNT(*) AS taskCnt FROM tasks
-        WHERE owner_id = ? AND status IN ('pending','in_progress')`,
-      [user.staff_id],
+      `SELECT COUNT(DISTINCT t.task_id) AS taskCnt FROM tasks t
+        WHERE t.status IN ('pending','in_progress')
+          AND (
+            t.owner_id = ?
+            OR EXISTS (SELECT 1 FROM task_co_leads cl WHERE cl.task_id = t.task_id AND cl.staff_id = ?)
+            OR EXISTS (SELECT 1 FROM task_auxiliary_owners ax WHERE ax.task_id = t.task_id AND ax.staff_id = ?)
+            OR EXISTS (SELECT 1 FROM task_collaborators tc WHERE tc.task_id = t.task_id AND tc.staff_id = ?)
+          )`,
+      [user.staff_id, user.staff_id, user.staff_id, user.staff_id],
     )
     if (taskCnt > 0) {
       throw createError(

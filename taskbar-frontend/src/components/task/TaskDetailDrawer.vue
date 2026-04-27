@@ -37,7 +37,8 @@
           <el-descriptions-item label="任务编号" :span="2">
             <span class="task-no">{{ task.task_no }}</span>
           </el-descriptions-item>
-          <el-descriptions-item label="负责人">{{ task.owner_name }}</el-descriptions-item>
+          <el-descriptions-item label="牵头主理人">{{ task.owners_display || task.owner_name || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="辅助负责人">{{ task.auxiliary_display || '—' }}</el-descriptions-item>
           <el-descriptions-item label="所属周期">{{ task.period_name || '-' }}</el-descriptions-item>
           <el-descriptions-item label="优先级">
             <el-tag :type="PRIORITY_MAP[task.priority]?.type ?? 'info'" size="small" effect="plain">
@@ -232,14 +233,21 @@ function dateClass(endDate, status) {
 // ── 权限 ──────────────────────────────────────────────────────────────────────
 const canEdit = computed(() => userStore.isAdmin || userStore.isLeader)
 
+function teacherIsTaskParticipant(t) {
+  const sid = userStore.staffId
+  if (sid == null) return false
+  if (t.owner_id === sid) return true
+  if (t.co_leads?.some((c) => c.staff_id === sid)) return true
+  if (t.auxiliary_owners?.some((c) => c.staff_id === sid)) return true
+  if (t.collaborators?.some((c) => c.staff_id === sid)) return true
+  return false
+}
+
 const canUpdateProgress = computed(() => {
   if (!task.value) return false
   if (userStore.isAdmin) return true
   if (userStore.role === 'teacher') {
-    const sid = userStore.staffId
-    const isOwner  = task.value.owner_id === sid
-    const isCollab = task.value.collaborators?.some(c => c.staff_id === sid)
-    return isOwner || isCollab
+    return teacherIsTaskParticipant(task.value)
   }
   return false
 })
@@ -249,10 +257,7 @@ const canManageTaskFiles = computed(() => {
   if (!task.value) return false
   if (userStore.isAdmin || userStore.isLeader) return true
   if (userStore.role === 'teacher') {
-    const sid = userStore.staffId
-    const isOwner  = task.value.owner_id === sid
-    const isCollab = task.value.collaborators?.some(c => c.staff_id === sid)
-    return isOwner || isCollab
+    return teacherIsTaskParticipant(task.value)
   }
   return false
 })
