@@ -104,7 +104,8 @@
         </el-button>
         <el-button
           v-if="userStore.isAdmin || userStore.isLeader"
-          @click="downloadTaskImportTemplate"
+          :loading="taskTemplateLoading"
+          @click="handleDownloadTaskTemplate"
         >
           <el-icon><Download /></el-icon> 下载空模板
         </el-button>
@@ -512,6 +513,7 @@ const filters = reactive({
 const staffOptions = ref([])
 
 const exportPdfLoading = ref(false)
+const taskTemplateLoading = ref(false)
 
 async function loadStaffOptions() {
   try {
@@ -717,6 +719,19 @@ async function handleImportTasks({ file }) {
     if (!showTaskImportErrors(e)) {
       /* 已由 request 拦截器提示 */
     }
+  }
+}
+
+async function handleDownloadTaskTemplate() {
+  taskTemplateLoading.value = true
+  try {
+    await downloadTaskImportTemplate()
+    ElMessage.success('模板已下载')
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('模板生成失败，请稍后重试')
+  } finally {
+    taskTemplateLoading.value = false
   }
 }
 

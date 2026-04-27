@@ -9,7 +9,7 @@ const pool = require('../config/database')
 const { createError } = require('../utils/response')
 const {
   TASK_CATEGORIES,
-  sheetToRecords,
+  taskImportSheetToRecords,
   cellToYMD,
   normalizePriority,
   splitStaffCodes,
@@ -631,8 +631,13 @@ async function importTasksFromExcelBuffer(buffer, createdByUserId) {
   /** @type {Array<{ row: number, message: string }>} */
   const errors = []
   let records
+  let dataStartExcelRow = 2
+  let headerExcelRow = 1
   try {
-    records = sheetToRecords(buffer)
+    const parsed = taskImportSheetToRecords(buffer)
+    records = parsed.records
+    dataStartExcelRow = parsed.dataStartExcelRow
+    headerExcelRow = parsed.headerExcelRow
   } catch (e) {
     return { ok: false, errors: [{ row: 0, message: `无法读取 Excel：${e.message}` }] }
   }
@@ -642,7 +647,7 @@ async function importTasksFromExcelBuffer(buffer, createdByUserId) {
   const headerKeys = Object.keys(records[0])
   for (const col of TASK_IMPORT_REQUIRED) {
     if (!headerKeys.includes(col)) {
-      return { ok: false, errors: [{ row: 1, message: `表头缺少必填列「${col}」` }] }
+      return { ok: false, errors: [{ row: headerExcelRow, message: `表头缺少必填列「${col}」` }] }
     }
   }
 
@@ -669,7 +674,7 @@ async function importTasksFromExcelBuffer(buffer, createdByUserId) {
 
   for (let i = 0; i < records.length; i++) {
     const r = records[i]
-    const excelRow = i + 2
+    const excelRow = dataStartExcelRow + i
     const taskName = String(r['任务名称'] ?? '').trim()
     const ownerCodes = splitStaffCodes(r['负责人工号'])
     const periodName = String(r['周期名称'] ?? '').trim()

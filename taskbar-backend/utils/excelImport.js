@@ -16,20 +16,82 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
  * @param {Buffer} buffer
  * @returns {Array<Record<string, unknown>>}
  */
+function normalizeHeaderKeysRow(row) {
+  const o = {}
+  for (const [k, v] of Object.entries(row)) {
+    const key = String(k).trim()
+    if (key) o[key] = v
+  }
+  return o
+}
+
+function isNonEmptyDataRow(o) {
+  return Object.values(o).some((v) => v !== '' && v != null)
+}
+
 function sheetToRecords(buffer) {
   const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true })
   const name = wb.SheetNames[0]
   if (!name) return []
   const sheet = wb.Sheets[name]
   const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' })
-  return rows.map((row) => {
+  return rows
+    .map((row) => normalizeHeaderKeysRow(row))
+    .filter(isNonEmptyDataRow)
+}
+
+/**
+ * 任务导入：首列可能为顶部说明，表头行为「任务名称」「负责人工号」起始行。
+ * @returns {{ records: Array<Record<string, unknown>>, dataStartExcelRow: number, headerExcelRow: number }}
+ */
+function taskImportSheetToRecords(buffer) {
+  const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true })
+  const name = wb.SheetNames[0]
+  if (!name) return { records: [], dataStartExcelRow: 2, headerExcelRow: 1 }
+  const sheet = wb.Sheets[name]
+  const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' })
+  const headerIdx = findTaskImportHeaderRowIndex(aoa)
+  if (headerIdx === -1) {
+    const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+    const records = rows
+      .map((row) => normalizeHeaderKeysRow(row))
+      .filter(isNonEmptyDataRow)
+    return { records, dataStartExcelRow: 2, headerExcelRow: 1 }
+  }
+  const headers = (aoa[headerIdx] || []).map((c) => String(c).trim())
+  const records = []
+  for (let r = headerIdx + 1; r < aoa.length; r++) {
+    const row = aoa[r] || []
     const o = {}
-    for (const [k, v] of Object.entries(row)) {
-      const key = String(k).trim()
-      if (key) o[key] = v
+    for (let c = 0; c < headers.length; c++) {
+      const key = headers[c]
+      if (!key) continue
+      o[key] = row[c]
     }
-    return o
-  }).filter((row) => Object.values(row).some((v) => v !== '' && v != null))
+    if (isNonEmptyDataRow(o)) records.push(o)
+  }
+  const headerExcelRow = headerIdx + 1
+  const dataStartExcelRow = headerIdx + 2
+  return { records, dataStartExcelRow, headerExcelRow }
+}
+
+function findTaskImportHeaderRowIndex(aoa) {
+  for (let i = 0; i < aoa.length; i++) {
+    const row = aoa[i]
+    if (!row || !row.length) continue
+    const c0 = String(row[0]).trim()
+    const c1 = String(row[1] ?? '').trim()
+    const c4 = String(row[4] ?? '').trim()
+    if (c0 === '任务名称' && c1 === '负责人工号' && c4 === '周期名称') return i
+  }
+  for (let i = 0; i < aoa.length; i++) {
+    const row = aoa[i]
+    if (!row || !row.length) continue
+    if (String(row[0]).trim() === '任务名称' && String(row[1] ?? '').trim() === '负责人工号') {
+      return i
+    }
+  }
+  return -1
 }
 
 /**
@@ -182,6 +244,7 @@ function splitStaffCodes(raw) {
 module.exports = {
   TASK_CATEGORIES,
   sheetToRecords,
+  taskImportSheetToRecords,
   cellToYMD,
   parseContact,
   parseStaffImportContact,
