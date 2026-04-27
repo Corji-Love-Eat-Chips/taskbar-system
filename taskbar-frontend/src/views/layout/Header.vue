@@ -11,7 +11,12 @@
 
       <!-- 消息通知 -->
       <el-tooltip content="消息通知" placement="bottom">
-        <el-badge :value="unreadCount || null" :max="99" class="notice-badge">
+        <el-badge
+          :value="noticeBadgeValue"
+          :hidden="!noticeBadgeValue"
+          :max="99"
+          class="notice-badge"
+        >
           <el-button
             circle
             text
@@ -89,18 +94,71 @@
       </el-timeline>
     </el-drawer>
 
+    <!-- 修改密码 -->
+    <el-dialog
+      v-model="passwordDialogVisible"
+      title="修改密码"
+      width="420px"
+      destroy-on-close
+      :close-on-click-modal="false"
+      @closed="resetPasswordForm"
+    >
+      <el-form
+        ref="passwordFormRef"
+        :model="passwordForm"
+        :rules="passwordRules"
+        label-width="96px"
+        @submit.prevent
+      >
+        <el-form-item label="原密码" prop="old_password">
+          <el-input
+            v-model="passwordForm.old_password"
+            type="password"
+            show-password
+            autocomplete="current-password"
+            placeholder="请输入当前登录密码"
+          />
+        </el-form-item>
+        <el-form-item label="新密码" prop="new_password">
+          <el-input
+            v-model="passwordForm.new_password"
+            type="password"
+            show-password
+            autocomplete="new-password"
+            placeholder="至少 6 位"
+          />
+        </el-form-item>
+        <el-form-item label="确认新密码" prop="new_password_confirm">
+          <el-input
+            v-model="passwordForm.new_password_confirm"
+            type="password"
+            show-password
+            autocomplete="new-password"
+            placeholder="再次输入新密码"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="passwordDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="passwordSubmitting" @click="submitPasswordChange">
+          确定
+        </el-button>
+      </template>
+    </el-dialog>
+
   </el-header>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Bell, FullScreen, SemiSelect,
   User, Lock, SwitchButton, CaretBottom,
 } from '@element-plus/icons-vue'
-import { ElMessageBox } from 'element-plus'
+import { ElMessageBox, ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
+import { changePassword as apiChangePassword } from '@/api/user'
 
 // ── 常量 ──────────────────────────────────────────────────────────────────
 const HEADER_H = 56
@@ -118,6 +176,12 @@ const avatarLetter = computed(
 const roleLabel = computed(() => {
   const map = { admin: '管理员', teacher: '教师', leader: '系部领导' }
   return map[userStore.role] ?? userStore.role ?? ''
+})
+
+const noticeBadgeValue = computed(() => {
+  const n = Number(unreadCount.value)
+  if (!Number.isFinite(n) || n <= 0) return undefined
+  return Math.min(Math.floor(n), 99)
 })
 
 // ── 窄屏判断（可换为 useWindowSize）────────────────────────────────────────
@@ -146,6 +210,66 @@ function toggleNoticePanel() {
   unreadCount.value = 0   // 打开即标记已读
 }
 
+// ── 修改密码 ────────────────────────────────────────────────────────────────
+const passwordDialogVisible = ref(false)
+const passwordSubmitting = ref(false)
+const passwordFormRef = ref(null)
+const passwordForm = reactive({
+  old_password: '',
+  new_password: '',
+  new_password_confirm: '',
+})
+
+function resetPasswordForm() {
+  passwordForm.old_password = ''
+  passwordForm.new_password = ''
+  passwordForm.new_password_confirm = ''
+  passwordFormRef.value?.resetFields?.()
+}
+
+const passwordRules = {
+  old_password: [{ required: true, message: '请输入原密码', trigger: 'blur' }],
+  new_password: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, message: '新密码至少 6 位', trigger: 'blur' },
+  ],
+  new_password_confirm: [
+    { required: true, message: '请再次输入新密码', trigger: 'blur' },
+    {
+      validator: (_rule, val, cb) => {
+        if (val !== passwordForm.new_password) cb(new Error('两次输入的新密码不一致'))
+        else cb()
+      },
+      trigger: 'blur',
+    },
+  ],
+}
+
+async function submitPasswordChange() {
+  const form = passwordFormRef.value
+  if (!form) return
+  try {
+    await form.validate()
+  } catch {
+    return
+  }
+  passwordSubmitting.value = true
+  try {
+    const res = await apiChangePassword({
+      old_password: passwordForm.old_password,
+      new_password: passwordForm.new_password,
+    })
+    ElMessage.success(res.message || '密码修改成功，请重新登录')
+    passwordDialogVisible.value = false
+    await userStore.logout()
+    router.push('/login')
+  } catch {
+    /* 错误信息由 request 拦截器或业务码提示 */
+  } finally {
+    passwordSubmitting.value = false
+  }
+}
+
 // ── 下拉菜单命令 ──────────────────────────────────────────────────────────
 async function handleCommand(cmd) {
   if (cmd === 'logout') {
@@ -167,7 +291,8 @@ async function handleCommand(cmd) {
     return
   }
   if (cmd === 'password') {
-    // TODO: 打开修改密码弹窗
+    resetPasswordForm()
+    passwordDialogVisible.value = true
   }
 }
 </script>

@@ -97,12 +97,15 @@ export function resetPassword(id, data = {}) {
 }
 
 /**
- * 用户自行修改密码
- * @param {{ oldPassword: string, newPassword: string, confirmPassword: string }} data
+ * 用户自行修改密码（需原密码）
+ * @param {{ old_password: string, new_password: string }} data
  * @returns {Promise}
  */
 export function changePassword(data) {
-  return request.put('/users/password', data)
+  return request.put('/users/password', {
+    old_password: data.old_password,
+    new_password: data.new_password,
+  })
 }
 
 /**
